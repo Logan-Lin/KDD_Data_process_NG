@@ -1,15 +1,10 @@
-import csv
-from datetime import datetime, timedelta
-import math
 import copy
-import h5py
+import csv
+import math
+from datetime import datetime, timedelta
 
-
-def per_delta(start, end, delta):
-    curr = start
-    while curr <= end:
-        yield curr
-        curr += delta
+from deepkdd import raw_fetch
+from deepkdd.tools import per_delta
 
 
 def get_time_string(start_time_s, end_time_s, time_delta=timedelta(hours=1)):
@@ -60,47 +55,7 @@ def cal_affect_factor(main_id, verse_id, dt_string):
         return [None] * 6
 
 
-# Load all needed data into dicts and lists.
-# Load aq station location dict
-aq_location = dict()
-with open("../data/Beijing_AirQuality_Stations_cn.csv") as read_file:
-    reader = csv.reader(read_file, delimiter='\t')
-    for row in reader:
-        aq_location[row[0]] = row[1:]
-
-# Load grid location dict
-grid_location = dict()
-with open("../data/beijing_grid_location.csv") as read_file:
-    reader = csv.reader(read_file, delimiter=',')
-    for row in reader:
-        grid_location[row[0]] = row[1:3]
-del grid_location["stationName"]
-
-# Load grid meo info dict
-grid_dicts = dict()
-loaded = 0
-print("Loading grid meo data...")
-for grid_name in grid_location.keys():
-    grid_dict = dict()
-    with open("../data/meo/" + grid_name + ".csv") as grid_file:
-        reader = csv.reader(grid_file, delimiter=',')
-        for row in reader:
-            grid_dict[row[0]] = row[1:]
-    grid_dicts[grid_name] = grid_dict
-    loaded += 1
-    if loaded % 10 is 0:
-        print("Meo loaded %3.0f%%" % (loaded / len(grid_location.keys()) * 100))
-
-# Load aq station info dict
-aq_dicts = dict()
-print("Loading aq data...")
-for aq_name in aq_location.keys():
-    aq_dict = dict()
-    with open("../data/aq/" + aq_name + ".csv") as aq_file:
-        reader = csv.reader(aq_file, delimiter=',')
-        for row in reader:
-            aq_dict[row[0]] = row[1:]
-    aq_dicts[aq_name] = aq_dict
+aq_location, grid_location, aq_dicts, grid_dicts = raw_fetch.load_all()
 
 # Load holiday date list
 format_string = "%Y-%m-%d %H:%M:%S"

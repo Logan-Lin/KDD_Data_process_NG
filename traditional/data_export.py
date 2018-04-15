@@ -87,7 +87,7 @@ for i in range(34):
 
 # Export data
 for aq_name in aq_location.keys():
-    export_file = open("../data/export/" + aq_name + ".csv", "w", newline='')
+    export_file = open("../data/tradition_export/" + aq_name + ".csv", "w", newline='')
     writer = csv.writer(export_file, delimiter=',')
     writer.writerow(head_row)
     start_datetime, end_datetime = datetime.strptime("2017-01-01 14:00:00", format_string), \

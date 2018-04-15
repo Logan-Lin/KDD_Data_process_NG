@@ -1,10 +1,12 @@
-from deepkdd import raw_fetch
 import math
+import os
 from datetime import datetime, timedelta
-from deepkdd.tools import per_delta
+
 import h5py
 import numpy as np
-import os
+
+from deepkdd import bj_raw_fetch
+from deepkdd.tools import per_delta
 
 
 # Get the nearest grid id and coordination close to the given coordinate
@@ -71,7 +73,7 @@ def get_grids(aq_name, n):
     return [coor_to_id(grid_coor) for grid_coor in grid_coors]
 
 
-aq_location, grid_location, aq_dicts, grid_dicts = raw_fetch.load_all()
+aq_location, grid_location, aq_dicts, grid_dicts = bj_raw_fetch.load_all()
 format_string = "%Y-%m-%d %H:%M:%S"
 date_format_string = "%Y_%m_%d"
 start_datetime, end_datetime = datetime.strptime("2017-01-01 00:00:00", format_string), \
@@ -83,6 +85,7 @@ data_dir = "../data/h5"
 if not os.path.exists(data_dir):
     os.makedirs(data_dir)
 aq_count = 0
+valid_count = 0
 for aq_name in aq_location.keys():
     directory = "".join([data_dir, "/", aq_name])
     if not os.path.exists(directory):
@@ -101,7 +104,7 @@ for aq_name in aq_location.keys():
             dt_string = dt_object.strftime(format_string)
 
             # Fetch history and prediction data, check data validation in the same time
-            aq_matrix, predict, near_grid_data = check_valid(aq_name, dt_object, 3)
+            aq_matrix, predict, near_grid_data = check_valid(aq_name, dt_object, time_span)
             if aq_matrix is None:
                 continue
             valid = True
@@ -110,6 +113,7 @@ for aq_name in aq_location.keys():
             grid_matrix.append(near_grid_data)
             history_matrix.append(aq_matrix)
             predict_matrix.append(predict)
+            valid_count += 1
         if valid:
             date_string = d_object.date().strftime(date_format_string)
             h5_file = h5py.File("".join([directory, "/",
@@ -121,3 +125,4 @@ for aq_name in aq_location.keys():
             h5_file.close()
     aq_count += 1
     print("Deep learning data exported %3.f%%" % (100 * aq_count / len(aq_location.keys())))
+print("Valid data count:", valid_count)

@@ -1,5 +1,5 @@
 import csv
-from deepkdd import bj_raw_fetch, tools
+from deepkdd import bj_raw_fetch, tools, ld_raw_fetch
 from datetime import datetime, timedelta
 
 
@@ -8,20 +8,22 @@ def csv_split():
         reader = csv.reader(csv_file, delimiter=',')
         count = 0
         for row in reader:
-            if count is 0:
+            if count is -1:
                 header_row = row
             else:
-                with open("../data_ld/meo/" + row[0] + ".csv", "a", newline='') as file_for_writer:
+                with open("../data/" + "London_grid_location" + ".csv", "a", newline='') as file_for_writer:
                     writer = csv.writer(file_for_writer, delimiter=',')
-                    writer.writerow(row[3:])
+                    writer.writerow(row[:3])
                     file_for_writer.flush()
             count += 1
+            if count > 1722:
+                break
             if count % 10000 is 0:
                 print("Already finished", count, "rows")
 
 
 def csv_fill():
-    aq_location, aq_dicts = bj_raw_fetch.load_aq()
+    aq_location, aq_dicts = ld_raw_fetch.load_aq()
     for aq_name in aq_location:
         aq_dict = aq_dicts[aq_name]
         start_dt_o, end_dt_o = datetime.strptime(list(aq_dict.keys())[0], format_string), \
@@ -33,7 +35,7 @@ def csv_fill():
             try:
                 data = aq_dict[dt_s]
             except KeyError:
-                aq_dict[dt_s] = [None] * 6
+                aq_dict[dt_s] = [None] * 3
 
         start_dt_o += timedelta(hours=1)
         end_dt_o -= timedelta(hours=1)
@@ -53,13 +55,15 @@ def csv_fill():
         print("Filled data in ", aq_name, ": ", count, sep='')
 
         # Write into csv
-        with open("../data_m/aq/" + aq_name + ".csv", "w", newline='') as file:
+        with open("../data_ld_m/aq/" + aq_name + ".csv", "w", newline='') as file:
             writer = csv.writer(file, delimiter=',')
             for dt_s in aq_dict.keys():
-                writer.writerow([dt_s] + aq_dict[dt_s])
+                dt_s_m = datetime.strptime(dt_s, format_string).strftime(format_string_m)
+                writer.writerow([dt_s_m] + aq_dict[dt_s])
             file.flush()
 
 
-format_string = "%Y-%m-%d %H:%M:%S"
-# csv_fill()
-csv_split()
+format_string_m = "%Y-%m-%d %H:%M:%S"
+format_string = "%Y/%m/%d %H:%M"
+csv_fill()
+# csv_split()

@@ -91,6 +91,7 @@ if __name__ == '__main__':
     len_test = args.len_test
     nb_start_epoch = args.nb_start_epoch
     nb_end_epoch = args.nb_end_epoch
+
     # load DataSet
     all_X_meo = []
     all_X_aq = []
@@ -118,10 +119,14 @@ if __name__ == '__main__':
     all_X_external = None
 
     # isRealData = 0, means need normalization
+    # Normalize all data to range(-1, 1)
     if isRealData == 0:
+        # Normalize meo and aq data, fetch max and min value in the same time
         all_X_meo, all_X_aq, meo_max, meo_min, aq_max, aq_min = transform_X(all_X_meo, all_X_aq)
         Y_aq_min = []
         Y_aq_max = []
+
+        # Directly use aq's max and min as Y's max and min.
         Y_aq_min.append(aq_min[0])
         Y_aq_max.append(aq_max[0])
         Y_aq_min.append(aq_min[1])
@@ -132,6 +137,8 @@ if __name__ == '__main__':
 
     if all_X_external is None:
         external_dim = 0
+
+        # Split train and test data sets.
         Train_X_meo, Train_X_aq, Y_train = all_X_meo[:-len_test], all_X_aq[:-len_test], all_Y[:-len_test]
         Test_X_meo, Test_X_aq, Y_test = all_X_meo[-len_test:], all_X_aq[-len_test:], all_Y[-len_test:]
         timestamps_train, timestamps_test = all_timestampes_Y[:-len_test], all_timestampes_Y[-len_test:]

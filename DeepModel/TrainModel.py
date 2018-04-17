@@ -34,7 +34,7 @@ class TrainModel(object):
 
         path = os.path.join(self.data_path, 'MODEL', hyperparams_name)
 
-        if os.path.exists(path) == False:
+        if not os.path.exists(path):
             os.makedirs(path)
             print("mkdir path:", path)
 

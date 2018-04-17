@@ -80,3 +80,7 @@ def load_aq():
 
 def load_grid():
     return grid_location, load_grid_dicts()
+
+
+def load_location():
+    return aq_location, grid_location

@@ -1,4 +1,5 @@
 import csv
+from datetime import datetime
 
 
 def float_m(value):
@@ -39,16 +40,17 @@ def load_aq_dicts():
     aq_dicts = dict()
     print("Loading aq data...")
     for aq_name in aq_location.keys():
-        loss_count = 0
+        # loss_count = 0
         aq_dict = dict()
-        with open("../data_ld/aq/" + aq_name + ".csv", "r") as aq_file:
+        with open("../data_ld_m/aq/" + aq_name + ".csv", "r") as aq_file:
             reader = csv.reader(aq_file, delimiter=',')
             for row in reader:
                 try:
                     aq_dict[row[0]] = list(map(float_m, row[1:]))
                 except ValueError:
-                    loss_count += 1
-        print(aq_name, "loss", loss_count)
+                    # loss_count += 1
+                    pass
+        # print(aq_name, "loss", loss_count)
         aq_dicts[aq_name] = aq_dict
     return aq_dicts
 
@@ -84,3 +86,7 @@ def load_aq():
 
 def load_grid():
     return grid_location, load_grid_dicts()
+
+
+def load_location():
+    return aq_location, grid_location

@@ -3,7 +3,7 @@ import csv
 import math
 from datetime import datetime, timedelta
 
-from deepkdd import raw_fetch
+from deepkdd import bj_raw_fetch
 from deepkdd.tools import per_delta
 
 
@@ -55,7 +55,7 @@ def cal_affect_factor(main_id, verse_id, dt_string):
         return [None] * 6
 
 
-aq_location, grid_location, aq_dicts, grid_dicts = raw_fetch.load_all()
+aq_location, grid_location, aq_dicts, grid_dicts = bj_raw_fetch.load_all()
 
 # Load holiday date list
 format_string = "%Y-%m-%d %H:%M:%S"

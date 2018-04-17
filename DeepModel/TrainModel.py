@@ -1,8 +1,6 @@
 import os
 import time
-
 from keras.callbacks import ModelCheckpoint
-
 from DeepModel.AQNet_many2many import *
 from DeepModel.utils import *
 
@@ -27,9 +25,8 @@ class TrainModel(object):
                                                          nb_aq_lstm_decode=nb_aq_lstm_decode)
         adam = Adam(lr=0.00001)
         model.compile(loss='mse', optimizer=adam, metrics=[rmse])
-
         hyperparams_name = 'cnnlstm_lstm_embedding_normalvalue.h{}.meo_size{}.' \
-						   'meo_en{}.meo_de{}.aq_en{}.aq_de{}.ex_dim{}'.format(
+                           'meo_en{}.meo_de{}.aq_en{}.aq_de{}.ex_dim{}'.format(
             len_history, meo_size, nb_meo_lstm_encode, nb_meo_lstm_decode, nb_aq_lstm_encode, nb_aq_lstm_decode,
             external_dim)
 

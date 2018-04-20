@@ -22,8 +22,13 @@ def csv_split():
                 print("Already finished", count, "rows")
 
 
+def format_london_dt_string(dt_o):
+    dt_s = "{}/{}/{} {}:00".format(dt_o.year, dt_o.month, dt_o.day, dt_o.hour)
+    return dt_s
+
+
 def csv_fill():
-    aq_location, aq_dicts = ld_raw_fetch.load_aq()
+    aq_location, aq_dicts = ld_raw_fetch.load_aq_original()
     for aq_name in aq_location:
         aq_dict = aq_dicts[aq_name]
         start_dt_o, end_dt_o = datetime.strptime(list(aq_dict.keys())[0], format_string), \
@@ -31,7 +36,8 @@ def csv_fill():
 
         # Firstly fill lost time with all None value
         for dt_o in tools.per_delta(start_dt_o, end_dt_o, timedelta(hours=1)):
-            dt_s = dt_o.strftime(format_string)
+            # dt_s = dt_o.strftime(format_string)
+            dt_s = format_london_dt_string(dt_o)
             try:
                 data = aq_dict[dt_s]
             except KeyError:
@@ -42,15 +48,18 @@ def csv_fill():
         count = 0
         # Then fill data if only one row is lost
         for dt_o in tools.per_delta(start_dt_o, end_dt_o, timedelta(hours=1)):
-            dt_s = dt_o.strftime(format_string)
+            # dt_s = dt_o.strftime(format_string)
+            dt_s = format_london_dt_string(dt_o)
             data = aq_dict[dt_s]
-            previous = aq_dict[(dt_o - timedelta(hours=1)).strftime(format_string)]
-            following = aq_dict[(dt_o + timedelta(hours=1)).strftime(format_string)]
+            previous = aq_dict[format_london_dt_string(dt_o - timedelta(hours=1))]
+            following = aq_dict[format_london_dt_string(dt_o + timedelta(hours=1))]
             for column in range(len(data)):
-                if data[column] is None:
+                if data[column] is None or data[column] < 0:
                     if previous[column] is not None and following[column] is not None:
                         data[column] = (previous[column] + following[column]) / 2
                         count += 1
+                    else:
+                        data[column] = None
             aq_dict[dt_s] = data
         print("Filled data in ", aq_name, ": ", count, sep='')
 

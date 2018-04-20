@@ -90,11 +90,11 @@ for aq_name in aq_location.keys():
     near_grids, grid_coor_array = get_grids(aq_name, grid_edge_length)
 
     # Validate the near grid matrix algorithm
-    plt.figure()
-    plt.title(aq_name)
-    plt.plot(aq_location[aq_name][0], aq_location[aq_name][1], '.')
-    plt.plot(grid_coor_array[:, 0], grid_coor_array[:, 1], '.')
-    plt.show()
+    # plt.figure()
+    # plt.title(aq_name)
+    # plt.plot(aq_location[aq_name][0], aq_location[aq_name][1], '.')
+    # plt.plot(grid_coor_array[:, 0], grid_coor_array[:, 1], '.')
+    # plt.show()
 
     grid_matrix = []
     history_matrix = []

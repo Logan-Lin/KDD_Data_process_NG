@@ -75,7 +75,7 @@ def AQNet_cnnlstm_lstm_embedding_realvalue(meo_conf=(3, 5, 3, 3), hisAQ_conf=(3,
 
 
 def AQNet_cnnlstm_lstm_embedding_normalvalue(meo_conf=(3, 5, 3, 3), hisAQ_conf=(3, 6), external_dim=8, nb_meo_conv=2,
-                                             nb_meo_lstm_encode=1, nb_meo_lstm_decode=1, nb_aq_lstm_encode=1,
+                                             nb_meo_lstm_encode=5, nb_meo_lstm_decode=1, nb_aq_lstm_encode=1,
                                              nb_aq_lstm_decode=1):
     main_inputs = []
     main_outputs = []

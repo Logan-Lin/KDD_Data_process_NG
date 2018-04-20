@@ -1,15 +1,23 @@
 import matplotlib.pyplot as plt
-import csv
+import numpy as np
+from deepkdd import ld_raw_fetch
+from datetime import datetime, timedelta
+from deepkdd import tools
 
+aq_location, aq_dicts = ld_raw_fetch.load_aq()
+aq_dict = aq_dicts["BL0"]
+data_matrix = []
 
-with open("../data/meo/beijing_grid_000.csv") as csv_file:
-    reader = csv.reader(csv_file, delimiter=',')
-    data = []
-    for row in reader:
-        value = row[5]
-        if len(value) > 0:
-            data.append(float(value))
-    x = range(len(data))
-    data = sorted(data)
-    plt.plot(x, data)
-    plt.show()
+format_string = "%Y-%m-%d %H:%M:%S"
+start_dt, end_dt = datetime.strptime("2017-01-01 00:00:00", format_string), \
+                               datetime.strptime("2018-01-10 00:00:00", format_string)
+
+count = 0
+for dt_object in tools.per_delta(start_dt, end_dt, timedelta(hours=1)):
+    count += 1
+    dt_string = dt_object.strftime(format_string)
+    data_matrix.append(aq_dict[dt_string])
+
+data_matrix = np.array(data_matrix)
+
+plt.show()

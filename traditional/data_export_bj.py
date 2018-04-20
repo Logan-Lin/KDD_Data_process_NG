@@ -1,7 +1,12 @@
 import copy
-import csv
 import math
+import time as ti
 from datetime import datetime, timedelta
+from progressbar import ProgressBar as PB, Bar, Percentage
+import operator
+
+import h5py
+import numpy as np
 
 from deepkdd import bj_raw_fetch
 from deepkdd.tools import per_delta
@@ -50,7 +55,7 @@ def cal_affect_factor(main_id, verse_id, dt_string):
         wind_direction = float(meo_row[3]) / 360 * 2 * math.pi
         wind_speed = float(meo_row[4])
         angle = abs(cal_angle(main_coordinate, verse_coordinate) - wind_direction)
-        return [math.cos(angle * wind_speed) / distance] + meo_row
+        return math.cos(angle * wind_speed) / distance
     except KeyError:
         return [None] * 6
 
@@ -79,24 +84,39 @@ for i in range(len(holiday_array)):
 
 # Load csv header row list
 aq_row = ["PM2.5", "PM10", "NO2", "CO", "O3", "SO2"]
-head_row = ["aq_station", "time", "weekday", "workday", "holiday"] + aq_row + \
+head_row = ["time", "weekday", "workday", "holiday"] + aq_row + \
            ["temperature", "pressure", "humidity", "wind_direction", "wind_speed"]
-for i in range(34):
-    head_row.append("near_aq_factor_" + str(i))
-    head_row = head_row + aq_row
+# for i in range(34):
+#     head_row.append("near_aq_factor_" + str(i))
+#     head_row = head_row + aq_row
 
 # Export data
+h5_file = h5py.File("../data/tradition_export/traditional.h5", "w")
+print("\nFetching data to export...")
 for aq_name in aq_location.keys():
-    export_file = open("../data/tradition_export/" + aq_name + ".csv", "w", newline='')
-    writer = csv.writer(export_file, delimiter=',')
-    writer.writerow(head_row)
+    # export_file = open("../data/tradition_export/" + aq_name + ".csv", "w", newline='')
+    # writer = csv.writer(export_file, delimiter=',')
+    # writer.writerow(head_row)
+    valid_count = 0
+    aggregate = 0
+
     start_datetime, end_datetime = datetime.strptime("2017-01-01 14:00:00", format_string), \
                                    datetime.strptime("2018-03-27 05:00:00", format_string)
+    diff = end_datetime - start_datetime
+    days, seconds = diff.days, diff.seconds
+    delta_time = int(days * 24 + seconds // 3600)
+
+    ti.sleep(0.1)
+    bar = PB(initial_value=0, maxval=delta_time, widgets=[aq_name, ' ', Bar('=', '[', ']'), ' ', Percentage()])
+
+    data_matrix = []
     for dt_object in per_delta(start_datetime, end_datetime, timedelta(hours=1)):
+        bar.update(aggregate)
+        aggregate += 1
         try:
             row = list()
             dt_string = dt_object.strftime(format_string)
-            row += [aq_name] + [dt_string] + [dt_object.weekday()] + \
+            row += [int(ti.mktime(dt_object.timetuple()))] + [dt_object.weekday()] + \
                    [[1, 0][dt_object.weekday() in range(5)]] + \
                    [[0, 1][dt_object.date in holiday_array]]
             row += (aq_dicts[aq_name][dt_string])
@@ -106,11 +126,34 @@ for aq_name in aq_location.keys():
             other_aq = copy.copy(aq_location)
             del other_aq[aq_name]
 
+            factor_dict = dict()
             for other_aq_id in other_aq.keys():
-                row += cal_affect_factor(other_aq_id, aq_name, dt_string)
-            writer.writerow(row)
-            export_file.flush()
-            print("Exporting", aq_name, dt_string, "data")
+                factor = cal_affect_factor(other_aq_id, aq_name, dt_string)
+                factor_dict[other_aq_id] = factor
+            sorted_factor_dict = sorted(factor_dict.items(), key=operator.itemgetter(1), reverse=True)
+            valid = False
+            for other_aq_id, factor in sorted_factor_dict:
+                if factor < 0:
+                    valid = False
+                    break
+                try:
+                    other_aq_row = aq_dicts[other_aq_id][dt_string]
+                    valid = True
+                except KeyError:
+                    valid = False
+                if valid:
+                    row += [factor] + other_aq_row
+                    break
+            if not valid:
+                raise KeyError("Data loss here")
+
+            data_matrix.append(row)
+            valid_count += 1
         except KeyError as e:
-            print("Data Loss", dt_object.strftime(format_string), aq_name, e, sep=' | ')
-    export_file.close()
+            pass
+    print("Exported ", aq_name, " data, valid%5.2f%%" % (100 * valid_count / aggregate), sep='')
+    h5_file.create_dataset(aq_name, data=np.asarray(data_matrix))
+    ti.sleep(0.1)
+h5_file.flush()
+h5_file.close()
+# export_file.close()

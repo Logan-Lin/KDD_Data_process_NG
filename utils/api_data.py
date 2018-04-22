@@ -10,10 +10,8 @@ def datetime_string_convert(source):
 
 
 format_string = ["%Y-%m-%d %H:%M:%S", "%Y-%m-%d-%H"]
-if len(sys.argv) is not 3:
-    print("Argument Error!")
-    exit()
-[start_string, end_string] = list(map(datetime_string_convert, sys.argv[1:3]))
+start, end = "2018-04-01 00:00:00", "2018-04-22 00:00:00"
+[start_string, end_string] = list(map(datetime_string_convert, [start, end]))
 
 
 def fetch_data(url, file_header):
@@ -35,6 +33,6 @@ def fetch_data(url, file_header):
 url = "https://biendata.com/competition/meteorology/bj_grid/" + \
       start_string + "/" + end_string + "/2k0d1d8"
 fetch_data(url, "meo")
-url = "https://biendata.com/competition/airquality/bj/" + \
-      start_string + "/" + end_string + "/2k0d1d8"
-fetch_data(url, "aq")
+# url = "https://biendata.com/competition/airquality/bj/" + \
+#       start_string + "/" + end_string + "/2k0d1d8"
+# fetch_data(url, "aq")

@@ -81,7 +81,7 @@ aq_location, grid_location, aq_dicts, grid_dicts = load_all()
 format_string = "%Y-%m-%d %H:%M:%S"
 date_format_string = "%Y_%m_%d"
 start_datetime, end_datetime = datetime.strptime("2017-01-01 00:00:00", format_string), \
-                               datetime.strptime("2018-01-10 00:00:00", format_string)
+                               datetime.strptime("2018-04-22 00:00:00", format_string)
 time_span = 24
 predict_span = 50
 

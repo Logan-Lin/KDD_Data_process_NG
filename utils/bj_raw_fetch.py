@@ -3,10 +3,18 @@ from progressbar import ProgressBar as PB, Bar, Percentage
 from time import sleep
 
 
-def float_m(value):
+def float_m(value, throw=True):
     if value is None or len(value) == 0:
-        raise (ValueError("Data loss here"))
-        # return None
+        if throw:
+            raise (ValueError("Data loss here"))
+        else:
+            return None
+    return float(value)
+
+
+def float_m_none(value):
+    if value is None or len(value) == 0:
+        return None
     return float(value)
 
 
@@ -49,6 +57,19 @@ def load_aq_dicts():
                     pass
         aq_dicts[aq_name] = aq_dict
     return aq_dicts
+
+
+def load_aq_original():
+    aq_dicts = dict()
+    print("Loading aq data...")
+    for aq_name in aq_location.keys():
+        aq_dict = dict()
+        with open("../data/aq/" + aq_name + ".csv") as aq_file:
+            reader = csv.reader(aq_file, delimiter=',')
+            for row in reader:
+                aq_dict[row[0]] = list(map(float_m_none, row[1:]))
+        aq_dicts[aq_name] = aq_dict
+    return aq_location, aq_dicts
 
 
 # Load grid meo info dict

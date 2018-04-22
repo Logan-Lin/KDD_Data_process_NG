@@ -80,7 +80,7 @@ def get_grids(aq_name, n):
 aq_location, grid_location, aq_dicts, grid_dicts = load_all()
 format_string = "%Y-%m-%d %H:%M:%S"
 start_datetime, end_datetime = datetime.strptime("2017-01-01 00:00:00", format_string), \
-                               datetime.strptime("2018-01-10 00:00:00", format_string)
+                               datetime.strptime("2018-03-31 00:00:00", format_string)
 diff = end_datetime - start_datetime
 days, seconds = diff.days, diff.seconds
 delta_time = int(days * 24 + seconds // 3600)

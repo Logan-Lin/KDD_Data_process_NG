@@ -14,6 +14,12 @@ def float_m(value):
     return float(value)
 
 
+def float_m_none(value):
+    if value is None or len(value) == 0:
+        return None
+    return float(value)
+
+
 # Load all needed data into dicts and lists.
 # Load aq station location dict
 aq_location = dict()
@@ -55,7 +61,7 @@ def load_aq_dicts():
             reader = csv.reader(aq_file, delimiter=',')
             for row in reader:
                 try:
-                    aq_dict[row[0]] = list(map(float_m, row[1:3]))
+                    aq_dict[row[0]] = list(map(float_m_none, row[1:3]))
                     valid_count += 1
                 except ValueError:
                     loss_count += 1
@@ -204,5 +210,5 @@ def load_location():
 
 
 def load_aq_original():
-    return aq_location_all, load_aq_dicts_original()
+    return aq_location, load_aq_dicts_original()
 

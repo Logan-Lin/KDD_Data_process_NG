@@ -54,7 +54,8 @@ def csv_fill():
             previous = aq_dict[format_london_dt_string(dt_o - timedelta(hours=1))]
             following = aq_dict[format_london_dt_string(dt_o + timedelta(hours=1))]
             for column in range(len(data)):
-                if data[column] is None or data[column] < 0:
+                if data[column] is None or data[column] < 0 or \
+                        (column == 1 and data[column] > 200) or (column == 2 and data[column] > 300):
                     if previous[column] is not None and following[column] is not None:
                         data[column] = (previous[column] + following[column]) / 2
                         count += 1

@@ -36,7 +36,8 @@ def get_data(hour):
 			['温度', '16°', '17°', '18°', '19°', '20°', '19°', '18°', '17°']
 
 	"""
-    url = 'https://www.accuweather.com/zh/cn/beijing/101924/hourly-weather-forecast/101924?hour=%s' % hour
+    url = "https://www.accuweather.com/zh/gb/london/ec4a-2/hourly-weather-forecast/328328?hour=%s" % hour
+    # url = 'https://www.accuweather.com/zh/cn/beijing/101924/hourly-weather-forecast/101924?hour=%s' % hour
     logger.debug('fetch url: %s' % url)
     r = requests.get(url, headers=headers)
     soup = BeautifulSoup(r.text, 'lxml')
@@ -108,7 +109,7 @@ def get_batch_data(now):
     return data
 
 
-def insert_data_into_file(data, filename='data.txt'):
+def insert_data_into_file(data, filename='data_ld.txt'):
     """
 	insert json string into file
 
@@ -146,9 +147,9 @@ if __name__ == '__main__':
                 success = True
             except Exception as e:
                 logger.error(e)
-                traceback.print_exc(file=open('traceback.txt', 'a'))
+                traceback.print_exc(file=open('traceback_ld.txt', 'a'))
                 retry_times += 1
                 time.sleep(30)
         else:
             logger.error('program has fatal error!')
-        time.sleep(1440)
+        time.sleep(3600)

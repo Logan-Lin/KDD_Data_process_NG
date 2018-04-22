@@ -57,7 +57,8 @@ def load_grid_dicts():
     loaded = 0
     print("Loading grid meo data...")
 
-    bar = PB(initial_value=0, maxval=len(grid_location.keys()), widgets=['Grid load ', Bar('=', '[', ']'), ' ', Percentage()])
+    bar = PB(initial_value=0, maxval=len(grid_location.keys()),
+             widgets=['Grid load ', Bar('=', '[', ']'), ' ', Percentage()])
     for grid_name in grid_location.keys():
         grid_dict = dict()
         with open("../data/meo/" + grid_name + ".csv") as grid_file:

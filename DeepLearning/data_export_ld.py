@@ -1,12 +1,14 @@
 import math
 import os
 from datetime import datetime, timedelta
+from progressbar import ProgressBar as PB, Bar, Percentage
+from time import sleep, mktime
 
 import h5py
 import numpy as np
 import matplotlib.pyplot as plt
 
-from deepkdd.ld_raw_fetch import load_all
+from deepkdd.ld_raw_fetch import load_all, load_aq_modified_dicts
 from deepkdd.tools import per_delta
 
 
@@ -74,10 +76,15 @@ def get_grids(aq_name, n):
     return grid_coor_matrix, np.asarray(grid_coor_nparray)
 
 
+# aq_dicts = load_aq_modified_dicts()
 aq_location, grid_location, aq_dicts, grid_dicts = load_all()
 format_string = "%Y-%m-%d %H:%M:%S"
 start_datetime, end_datetime = datetime.strptime("2017-01-01 00:00:00", format_string), \
                                datetime.strptime("2018-01-10 00:00:00", format_string)
+diff = end_datetime - start_datetime
+days, seconds = diff.days, diff.seconds
+delta_time = int(days * 24 + seconds // 3600)
+
 time_span = 24
 grid_edge_length = 7
 predict_span = 50
@@ -85,7 +92,14 @@ data_dir = "../data_ld/h5"
 if not os.path.exists(data_dir):
     os.makedirs(data_dir)
 aq_count = 0
+print("\nFetching data to export...")
 for aq_name in aq_location.keys():
+    aggregate = 0
+
+    sleep(0.1)
+    bar = PB(initial_value=0, maxval=delta_time + 1,
+             widgets=[aq_name, ' ', Bar('=', '[', ']'), ' ', Percentage()])
+
     valid_count = 0
     near_grids, grid_coor_array = get_grids(aq_name, grid_edge_length)
 
@@ -99,7 +113,10 @@ for aq_name in aq_location.keys():
     grid_matrix = []
     history_matrix = []
     predict_matrix = []
+    dt_int_array = []
     for dt_object in per_delta(start_datetime, end_datetime, timedelta(hours=1)):
+        aggregate += 1
+        bar.update(aggregate)
         dt_string = dt_object.strftime(format_string)
 
         # Fetch history and prediction data, check data validation in the same time
@@ -110,6 +127,7 @@ for aq_name in aq_location.keys():
         grid_matrix.append(near_grid_data)
         history_matrix.append(aq_matrix)
         predict_matrix.append(predict)
+        dt_int_array.append(int(mktime(dt_object.timetuple())))
         valid_count += 1
 
     h5_file = h5py.File("".join([data_dir, "/",
@@ -117,8 +135,8 @@ for aq_name in aq_location.keys():
     h5_file.create_dataset("grid", data=np.asarray(grid_matrix))
     h5_file.create_dataset("history", data=np.asarray(history_matrix))
     h5_file.create_dataset("predict", data=np.asarray(predict_matrix))
+    h5_file.create_dataset("timestep", data=np.asarray(dt_int_array))
     h5_file.flush()
     h5_file.close()
     aq_count += 1
-    print("Valid data count in", aq_name, valid_count, end=', ')
-    print("data exported %3.f%%" % (100 * aq_count / len(aq_location.keys())))
+    print(" - valid%6.2f%%" % (100 * valid_count / aggregate))

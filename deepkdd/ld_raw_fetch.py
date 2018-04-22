@@ -1,4 +1,9 @@
 import csv
+from progressbar import ProgressBar as PB, Bar, Percentage
+from time import sleep
+import operator
+
+from deepkdd.tools import cal_dis
 
 
 def float_m(value):
@@ -55,9 +60,51 @@ def load_aq_dicts():
                 except ValueError:
                     loss_count += 1
                     pass
-        print(aq_name, " loss ", loss_count, ", loss ", 100 * (loss_count / (valid_count + loss_count)), sep='')
+        # print(aq_name, " loss ", loss_count, ", loss ", 100 * (loss_count / (valid_count + loss_count)), sep='')
         aq_dicts[aq_name] = aq_dict
     return aq_dicts
+
+
+def load_aq_modified_dicts():
+    aq_dicts = load_aq_dicts()
+    aq_modified_dicts = dict()
+    print("Loading aq modified data...")
+    for aq_name in aq_location.keys():
+        aq_dict = dict()
+        with open("../data_ld_m/aq/" + aq_name + ".csv", "r") as aq_file:
+            reader = csv.reader(aq_file, delimiter=',')
+            for row in reader:
+                data_row = []
+                try:
+                    data_row += list(map(float_m, row[1:3]))
+                except ValueError:
+                    continue
+                try:
+                    data_row.append(float_m(row[3]))
+                except ValueError:
+                    try:
+                        data_row.append(get_near_no2(aq_dicts, aq_name, row[0]))
+                    except KeyError:
+                        continue
+                aq_dict[row[0]] = data_row
+        aq_modified_dicts[aq_name] = aq_dict
+    return aq_modified_dicts
+
+
+def get_near_no2(aq_dicts, aq_name, dt_string):
+    distance_matrix = get_distances(aq_name)
+    valid = False
+    result = 0
+    for near_aq_name, distance in distance_matrix:
+        try:
+            result = aq_dicts[near_aq_name][dt_string][2]
+            valid = True
+            break
+        except KeyError:
+            valid = False
+    if not valid:
+        raise KeyError("Data fetching fail")
+    return result
 
 
 def load_aq_dicts_original():
@@ -76,7 +123,7 @@ def load_aq_dicts_original():
                 except ValueError:
                     loss_count += 1
                     pass
-        print(aq_name, " loss ", loss_count, ", loss ", 100 * (loss_count / (valid_count + loss_count)), sep='')
+        # print(aq_name, " loss ", loss_count, ", loss ", 100 * (loss_count / (valid_count + loss_count)), sep='')
         aq_dicts[aq_name] = aq_dict
     return aq_dicts
 
@@ -85,6 +132,10 @@ def load_aq_dicts_original():
 def load_grid_dicts():
     grid_dicts = dict()
     loaded = 0
+
+    bar = PB(initial_value=0, maxval=len(grid_location.keys()),
+             widgets=['Grid load ', Bar('=', '[', ']'), ' ', Percentage()])
+
     print("Loading grid meo data...")
     for grid_name in grid_location.keys():
         grid_dict = dict()
@@ -97,9 +148,19 @@ def load_grid_dicts():
                     pass
         grid_dicts[grid_name] = grid_dict
         loaded += 1
-        if loaded % 20 is 0:
-            print("Meo loaded %3.0f%%" % (loaded / len(grid_location.keys()) * 100))
+        bar.update(loaded)
+
+    sleep(0.1)
     return grid_dicts
+
+
+def get_distances(this_aq_name):
+    distance_dict = dict()
+    for aq_name in aq_location_all.keys():
+        distance_dict[aq_name] = cal_dis(aq_location_all[this_aq_name], aq_location_all[aq_name])
+    del distance_dict[this_aq_name]
+    sorted_dis = sorted(distance_dict.items(), key=operator.itemgetter(1))
+    return sorted_dis
 
 
 def test_data_loss():
@@ -145,5 +206,3 @@ def load_location():
 def load_aq_original():
     return aq_location_all, load_aq_dicts_original()
 
-
-# test_data_loss()

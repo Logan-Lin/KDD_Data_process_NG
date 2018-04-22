@@ -85,7 +85,8 @@ for i in range(len(holiday_array)):
 # Load csv header row list
 aq_row = ["PM2.5", "PM10", "NO2", "CO", "O3", "SO2"]
 head_row = ["time", "weekday", "workday", "holiday"] + aq_row + \
-           ["temperature", "pressure", "humidity", "wind_direction", "wind_speed"]
+           ["temperature", "pressure", "humidity", "wind_direction", "wind_speed"] + \
+           ["near_aq_factor"] + aq_row
 # for i in range(34):
 #     head_row.append("near_aq_factor_" + str(i))
 #     head_row = head_row + aq_row
@@ -132,6 +133,7 @@ for aq_name in aq_location.keys():
                 factor_dict[other_aq_id] = factor
             sorted_factor_dict = sorted(factor_dict.items(), key=operator.itemgetter(1), reverse=True)
             valid = False
+            other_aq_row = [None] * 6
             for other_aq_id, factor in sorted_factor_dict:
                 if factor < 0:
                     valid = False
@@ -151,7 +153,7 @@ for aq_name in aq_location.keys():
             valid_count += 1
         except KeyError as e:
             pass
-    print("Exported ", aq_name, " data, valid%5.2f%%" % (100 * valid_count / aggregate), sep='')
+    print(" - valid%6.2f%%" % (100 * valid_count / aggregate), sep='')
     h5_file.create_dataset(aq_name, data=np.asarray(data_matrix))
     ti.sleep(0.1)
 h5_file.flush()

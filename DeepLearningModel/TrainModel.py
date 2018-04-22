@@ -1,12 +1,11 @@
 import os
 import time
 from keras.callbacks import ModelCheckpoint
-from DeepModel.AQNet_many2many import *
-from DeepModel.utils import *
+from DeepLearningModel.AQNet_many2many import *
+from DeepLearningModel.utils import *
 
 
 class TrainModel(object):
-
     def __init__(self, data_path, lr, batch_size, nb_end_epoch, nb_start_epoch=0):
         self.data_path = data_path
         self.batch_size = batch_size
@@ -23,33 +22,26 @@ class TrainModel(object):
                                                          nb_meo_lstm_decode=nb_meo_lstm_decode,
                                                          nb_aq_lstm_encode=nb_aq_lstm_encode,
                                                          nb_aq_lstm_decode=nb_aq_lstm_decode)
-        adam = Adam(lr=0.00001)
+        adam = Adam(lr=self.lr)
         model.compile(loss='mse', optimizer=adam, metrics=[rmse])
-        hyperparams_name = 'cnnlstm_lstm_embedding_normalvalue.h{}.meo_size{}.' \
-                           'meo_en{}.meo_de{}.aq_en{}.aq_de{}.ex_dim{}'.format(
+        hyperparams_name = 'cnnlstm_lstm_embedding_normalvalue.h{}.meo_size{}.meo_en{}.meo_de{}.aq_en{}.aq_de{}.ex_dim{}'.format(
             len_history, meo_size, nb_meo_lstm_encode, nb_meo_lstm_decode, nb_aq_lstm_encode, nb_aq_lstm_decode,
             external_dim)
-
         model.summary()
-
         path = os.path.join(self.data_path, 'MODEL', hyperparams_name)
-
-        if not os.path.exists(path):
+        if os.path.exists(path) == False:
             os.makedirs(path)
             print("mkdir path:", path)
-
         # load nb_start_epoch model
         if self.nb_start_epoch > 0:
             fname_param = os.path.join(path, 'weights.{}.hdf5'.format(self.nb_start_epoch))
             print("load nb_start_epoch model: ", fname_param)
             model.load_weights(fname_param)
-
         png_fname = os.path.join('{}.png'.format(hyperparams_name))
         plot_model(model, png_fname, show_shapes=True)
         # begin train model
         print('begin fit the model')
         start_fit_time = time.time()
-
         fname_param = os.path.join(path, 'weights.{epoch:d}.hdf5')
         model_checkpoint = ModelCheckpoint(fname_param, monitor='loss', verbose=1, save_best_only=True, mode='min',
                                            period=1)

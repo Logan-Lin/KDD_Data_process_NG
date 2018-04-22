@@ -8,8 +8,8 @@ import operator
 import h5py
 import numpy as np
 
-from deepkdd import bj_raw_fetch
-from deepkdd.tools import per_delta
+from utils import bj_raw_fetch
+from utils.tools import per_delta
 
 
 def get_time_string(start_time_s, end_time_s, time_delta=timedelta(hours=1)):

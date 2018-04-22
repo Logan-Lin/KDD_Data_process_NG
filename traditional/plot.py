@@ -1,8 +1,8 @@
 import matplotlib.pyplot as plt
 import numpy as np
-from deepkdd import ld_raw_fetch
+from utils import ld_raw_fetch
 from datetime import datetime, timedelta
-from deepkdd import tools
+from utils import tools
 
 aq_location, aq_dicts = ld_raw_fetch.load_aq()
 aq_dict = aq_dicts["BL0"]

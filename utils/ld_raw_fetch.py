@@ -3,7 +3,7 @@ from progressbar import ProgressBar as PB, Bar, Percentage
 from time import sleep
 import operator
 
-from deepkdd.tools import cal_dis
+from utils.tools import cal_dis
 
 
 def float_m(value):

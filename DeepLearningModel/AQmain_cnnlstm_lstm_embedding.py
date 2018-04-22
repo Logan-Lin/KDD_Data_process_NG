@@ -1,11 +1,8 @@
 import sys
 
-from DeepModel.utils import *
-
 sys.path.append('../')
-
-from DeepModel.TestModel import *
-from DeepModel.TrainModel import *
+from DeepLearningModel.TestModel import *
+from DeepLearningModel.TrainModel import *
 import warnings
 import argparse
 import time
@@ -33,7 +30,6 @@ with open("data/Beijing_AirQuality_Stations_cn.csv") as read_file:
             aq_location[row[0]] = list(map(float_m, row[1:]))
         except ValueError:
             pass
-
 # Load grid location dict
 grid_location = dict()
 with open("data/beijing_grid_location.csv") as read_file:
@@ -43,7 +39,6 @@ with open("data/beijing_grid_location.csv") as read_file:
             grid_location[row[0]] = list(map(float_m, row[1:3]))
         except ValueError:
             pass
-
 warnings.filterwarnings("ignore")
 # 读出超参
 # load训练集和测试集
@@ -54,7 +49,6 @@ warnings.filterwarnings("ignore")
 # AQNet_cnnlstm_lstm_embedding_realvalue
 # AQNet_cnnlstm_lstm_embedding_normalvalue
 if __name__ == '__main__':
-
     parser = argparse.ArgumentParser()
     # real_data or normal_data
     parser.add_argument('-r', '--real_data', type=int,
@@ -90,7 +84,6 @@ if __name__ == '__main__':
     len_test = args.len_test
     nb_start_epoch = args.nb_start_epoch
     nb_end_epoch = args.nb_end_epoch
-
     # load DataSet
     all_X_meo = []
     all_X_aq = []
@@ -107,25 +100,18 @@ if __name__ == '__main__':
     all_X_aq = np.vstack(copy(all_X_aq))
     all_Y = np.vstack(copy(all_Y))
     all_timestampes_Y = np.concatenate(copy(all_timestampes_Y), axis=0)
-    # import pdb
-    # pdb.set_trace()
 
-    ## random data
-    # all_X_meo = np.random.randint(0, 10, size=(100, 24, 5, 7, 7))
-    # all_X_aq = np.random.randint(0, 10, size=(100, 24, 6))
-    # all_Y = np.random.randint(0, 10, size=(100, 48, 3))
-    # all_timestampes_Y = np.random.randint(0, 10, size=(100,))
+    ## test small data set
+    # all_X_meo = all_X_meo[:100,:,:,:,:]
+    # all_X_aq = all_X_aq[:100,:,:]
+    # all_Y = all_Y[:100,:,:]
+    # all_timestampes_Y = all_timestampes_Y[:100]
     all_X_external = None
-
     # isRealData = 0, means need normalization
-    # Normalize all data to range(-1, 1)
     if isRealData == 0:
-        # Normalize meo and aq data, fetch max and min value in the same time
         all_X_meo, all_X_aq, meo_max, meo_min, aq_max, aq_min = transform_X(all_X_meo, all_X_aq)
         Y_aq_min = []
         Y_aq_max = []
-
-        # Directly use aq's max and min as Y's max and min.
         Y_aq_min.append(aq_min[0])
         Y_aq_max.append(aq_max[0])
         Y_aq_min.append(aq_min[1])
@@ -133,11 +119,8 @@ if __name__ == '__main__':
         Y_aq_min.append(aq_min[4])
         Y_aq_max.append(aq_max[4])
         all_Y = transform_Y(all_Y, Y_aq_max, Y_aq_min)
-
     if all_X_external is None:
         external_dim = 0
-
-        # Split train and test data sets.
         Train_X_meo, Train_X_aq, Y_train = all_X_meo[:-len_test], all_X_aq[:-len_test], all_Y[:-len_test]
         Test_X_meo, Test_X_aq, Y_test = all_X_meo[-len_test:], all_X_aq[-len_test:], all_Y[-len_test:]
         timestamps_train, timestamps_test = all_timestampes_Y[:-len_test], all_timestampes_Y[-len_test:]
@@ -173,10 +156,12 @@ if __name__ == '__main__':
     # strat train model #
     train_root_path = 'data/Model_Results'
     train_model_path = os.path.join(train_root_path)
-    if os.path.exists(train_model_path) == False:
+    if (os.path.exists(train_model_path) == False):
         os.makedirs(train_model_path)
         print("mkdir train_model_path:", train_model_path)
     lr = 0.0002
+    # lr = 0.00002
+    # lr = 0.000002
     batch_size = 32
     if nb_start_epoch >= 0:
         # training
@@ -189,12 +174,10 @@ if __name__ == '__main__':
                                                                  nb_aq_lstm_encode,
                                                                  nb_aq_lstm_decode, external_dim)
         else:
-            '''
             train.train_AQNet_cnnlstm_lstm_embedding_realvalue(X_train, Y_train, len_history, meo_size,
                                                                nb_meo_lstm_encode,
                                                                nb_meo_lstm_decode, nb_aq_lstm_encode, nb_aq_lstm_decode,
                                                                external_dim)
-                                                               '''
         elapsed = (time.time() - start)
         print('train on train data:', elapsed, 's')
         # testing
@@ -210,14 +193,11 @@ if __name__ == '__main__':
                                                                nb_aq_lstm_encode,
                                                                nb_aq_lstm_decode, external_dim)
         else:
-            '''
             test.test_AQNet_cnnlstm_lstm_embedding_realvalue(X_train, Y_train, timestamps_train, len_history, meo_size,
                                                              nb_meo_lstm_encode, nb_meo_lstm_decode, nb_aq_lstm_encode,
                                                              nb_aq_lstm_decode, external_dim)
-                                                             '''
         elapsed = (time.time() - start)
         print('evaluate on train data:', elapsed, 's')
-
         # evaluate model on test data
         print('\n', "<" * 5, "evaluate on test data", ">" * 5)
         start = time.time()
@@ -228,11 +208,9 @@ if __name__ == '__main__':
                                                                nb_aq_lstm_encode,
                                                                nb_aq_lstm_decode, external_dim)
         else:
-            '''
             test.test_AQNet_cnnlstm_lstm_embedding_realvalue(X_test, Y_test, timestamps_test, len_history, meo_size,
                                                              nb_meo_lstm_encode, nb_meo_lstm_decode, nb_aq_lstm_encode,
                                                              nb_aq_lstm_decode, external_dim)
-                                                             '''
         elapsed = (time.time() - start)
         print('evaluate on test data:', elapsed, 's')
     else:
@@ -251,7 +229,6 @@ if __name__ == '__main__':
                                                                            nb_aq_lstm_decode, external_dim,
                                                                            fixed_epoch=nb_end_epoch)
         else:
-            '''
             test.test_AQNet_cnnlstm_lstm_embedding_realvalue_saveResults(meo_max, meo_min, aq_max, aq_min, X_train,
                                                                          Y_train, timestamps_train, len_history,
                                                                          meo_size,
@@ -259,12 +236,10 @@ if __name__ == '__main__':
                                                                          nb_aq_lstm_encode,
                                                                          nb_aq_lstm_decode, external_dim,
                                                                          fixed_epoch=nb_end_epoch)
-                                                                         '''
         elapsed = (time.time() - start)
         print('evaluate on train data:', elapsed, 's')
 
         # evaluate model on test data
-        '''
         print('\n', "<" * 5, "evaluate on test data", ">" * 5)
         start = time.time()
         test = TestModel(test_model_path, batch_size, nb_start_epoch, Y_aq_max, Y_aq_min)
@@ -278,8 +253,7 @@ if __name__ == '__main__':
                                                                            fixed_epoch=nb_end_epoch)
         else:
             test.test_AQNet_cnnlstm_lstm_embedding_realvalue_saveResults(meo_max, meo_min, aq_max, aq_min, X_test,
-                                                                         Y_test, timestamps_test,
-                                                                         len_history, meo_size,
+                                                                         Y_test, timestamps_test, len_history, meo_size,
                                                                          nb_meo_lstm_encode, nb_meo_lstm_decode,
                                                                          nb_aq_lstm_encode,
                                                                          nb_aq_lstm_decode, external_dim,
@@ -287,4 +261,3 @@ if __name__ == '__main__':
 
         elapsed = (time.time() - start)
         print('evaluate on test data:', elapsed, 's')
-        '''

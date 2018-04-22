@@ -101,14 +101,21 @@ if __name__ == '__main__':
         all_timestampes_Y.append(h5_file["timestep"].value)
         all_aq_id.append(np.array([list(aq_location.keys()).index(aq_name) + 1] * np.shape(grid_data_value)[0]))
         h5_file.close()
+
+    h5_file = h5py.File("data/weather.h5")
+    all_forecast = h5_file["weather"].value
+
     all_X_meo = np.moveaxis(np.vstack(copy(all_X_meo)), 4, 2)
     all_X_aq = np.vstack(copy(all_X_aq))
     all_Y = np.vstack(copy(all_Y))
+    # all_forecast = np.vstack(copy(all_forecast))
     all_timestampes_Y = np.concatenate(copy(all_timestampes_Y), axis=0)
+    all_aq_id = np.concatenate(copy(all_aq_id), axis=0)
     split_index = splitTrainandTest(all_timestampes_Y, test_start_date)
     print("split_index:")
 
     all_X_external = None
+
     # isRealData = 0, means need normalization
     if isRealData == 0:
         all_X_meo, all_X_aq, meo_max, meo_min, aq_max, aq_min = transform_X(all_X_meo, all_X_aq)
@@ -127,6 +134,7 @@ if __name__ == '__main__':
         Test_X_meo, Test_X_aq, Y_test = all_X_meo[split_index:], all_X_aq[split_index:], all_Y[split_index:]
         timestamps_train, timestamps_test = all_timestampes_Y[:split_index], all_timestampes_Y[split_index:]
         aq_id_train, aq_id_test = all_aq_id[:split_index], all_timestampes_Y[split_index:]
+        Train_forecast, Test_forecast = all_forecast[:split_index], all_forecast[split_index:]
     else:
         external_dim = all_X_external.shape[1]
         Train_X_meo, Train_X_aq, Train_X_ext, Y_train = \
@@ -135,14 +143,17 @@ if __name__ == '__main__':
             all_X_meo[split_index:], all_X_aq[split_index:], all_X_external[split_index:], all_Y[split_index:]
         timestamps_train, timestamps_test = all_timestampes_Y[:split_index], all_timestampes_Y[split_index:]
         aq_id_train, aq_id_test = all_aq_id[:split_index], all_timestampes_Y[split_index:]
+        Train_forecast, Test_forecast = all_forecast[:split_index], all_forecast[split_index:]
     X_train = []
     X_test = []
     X_train.append(Train_X_meo)
     X_train.append(Train_X_aq)
+    X_train.append(Train_forecast)
     if external_dim > 0:
         X_train.append(Train_X_ext)
     X_test.append(Test_X_meo)
     X_test.append(Test_X_aq)
+    X_test.append(Test_forecast)
     if external_dim > 0:
         X_test.append(Test_X_ext)
     print("---------------- X train, Y train -----------------")
@@ -171,10 +182,16 @@ if __name__ == '__main__':
         start = time.time()
         train = TrainModel(train_model_path, lr, batch_size, nb_end_epoch, nb_start_epoch)
         if isRealData == 0:
-            train.train_AQNet_cnnlstm_lstm_embedding_normalvalue(X_train, Y_train, len_history, meo_size,
-                                                                 nb_meo_lstm_encode, nb_meo_lstm_decode,
-                                                                 nb_aq_lstm_encode,
-                                                                 nb_aq_lstm_decode, external_dim)
+            # train.train_AQNet_cnnlstm_lstm_embedding_normalvalue(X_train, Y_train, len_history, meo_size,
+            #                                                      nb_meo_lstm_encode, nb_meo_lstm_decode,
+            #                                                      nb_aq_lstm_encode,
+            #                                                      nb_aq_lstm_decode,
+            #                                                      external_dim=external_dim)
+            train.train_AQNet_cnnlstm_lstm_forecast_embedding_normalvalue(X_train, Y_train, len_history, meo_size,
+                                                                          nb_meo_lstm_encode, nb_meo_lstm_decode,
+                                                                          nb_aq_lstm_encode,
+                                                                          nb_aq_lstm_decode, forecast_dim=13,
+                                                                          external_dim=external_dim)
         else:
             train.train_AQNet_cnnlstm_lstm_embedding_realvalue(X_train, Y_train, len_history, meo_size,
                                                                nb_meo_lstm_encode,

@@ -53,3 +53,46 @@ class TrainModel(object):
         print("----------- print AQNet_cnnlstm_lstm_embedding_realvalue train loss ----------")
         for i, iloss in enumerate(history.losses):
             print("epoch %d: %f" % ((i + 1), iloss))
+
+    def train_AQNet_cnnlstm_lstm_forecast_embedding_normalvalue(self, X, Y, len_history, meo_size, nb_meo_lstm_encode,
+                                                               nb_meo_lstm_decode, nb_aq_lstm_encode, nb_aq_lstm_decode,
+                                                               external_dim, forecast_dim, nb_meo_conv=2, ):
+        model = AQNet_cnnlstm_lstm_forecast_embedding_normalvalue(meo_conf=(len_history, 5, meo_size, meo_size),
+                                                                 hisAQ_conf=(len_history, 6), external_dim=external_dim,
+                                                                 nb_meo_conv=2, nb_meo_lstm_encode=nb_meo_lstm_encode,
+                                                                 nb_meo_lstm_decode=nb_meo_lstm_decode,
+                                                                 nb_aq_lstm_encode=nb_aq_lstm_encode,
+                                                                 nb_aq_lstm_decode=nb_aq_lstm_decode,
+                                                                 forecast_dim=forecast_dim)
+        adam = Adam(lr=self.lr)
+        model.compile(loss='mse', optimizer=adam, metrics=[rmse])
+        hyperparams_name = 'cnnlstm_lstm_embedding_normalvalue.h{}.meo_size{}.meo_en{}.' \
+                           'meo_de{}.aq_en{}.aq_de{}.forecast_dim{}.ex_dim{}'.format(
+            len_history, meo_size, nb_meo_lstm_encode, nb_meo_lstm_decode, nb_aq_lstm_encode, nb_aq_lstm_decode,
+            forecast_dim, external_dim)
+        model.summary()
+        path = os.path.join(self.data_path, 'MODEL', hyperparams_name)
+        if os.path.exists(path) == False:
+            os.makedirs(path)
+            print("mkdir path:", path)
+        # load nb_start_epoch model
+        if self.nb_start_epoch > 0:
+            fname_param = os.path.join(path, 'weights.{}.hdf5'.format(self.nb_start_epoch))
+            print("load nb_start_epoch model: ", fname_param)
+            model.load_weights(fname_param)
+        png_fname = os.path.join('{}.png'.format(hyperparams_name))
+        plot_model(model, png_fname, show_shapes=True)
+        # begin train model
+        print('begin fit the model')
+        start_fit_time = time.time()
+        fname_param = os.path.join(path, 'weights.{epoch:d}.hdf5')
+        model_checkpoint = ModelCheckpoint(fname_param, monitor='loss', verbose=1, save_best_only=True, mode='min',
+                                           period=1)
+        history = LossHistory()
+        model.fit(X, Y, nb_epoch=self.nb_end_epoch, initial_epoch=self.nb_start_epoch, verbose=1,
+                  batch_size=self.batch_size, callbacks=[model_checkpoint, history])
+        elapsed = time.time() - start_fit_time
+        print('train from {} epoch to {} epoch cost {}s'.format(self.nb_start_epoch, self.nb_end_epoch, elapsed))
+        print("----------- print AQNet_cnnlstm_lstm_embedding_realvalue train loss ----------")
+        for i, iloss in enumerate(history.losses):
+            print("epoch %d: %f" % ((i + 1), iloss))

@@ -111,6 +111,7 @@ def AQNet_cnnlstm_lstm_embedding_normalvalue(meo_conf=(3, 5, 3, 3), hisAQ_conf=(
     for nb in range(nb_aq_lstm_decode):
         repeat_lstm_2 = LSTM(units=64, return_sequences=True, activation="relu")(repeat_lstm_2)
     main_outputs.append(repeat_lstm_2)
+
     # the third external_part
     if external_dim > 0:
         input = Input(shape=(external_dim,))
@@ -124,6 +125,67 @@ def AQNet_cnnlstm_lstm_embedding_normalvalue(meo_conf=(3, 5, 3, 3), hisAQ_conf=(
     all_dense = TimeDistributed(Dense(32, activation='relu'))(all_features)
     output = TimeDistributed(Dense(3, activation='tanh'))(all_dense)
     model = Model(input=main_inputs, output=output)
+    return model
+
+
+def AQNet_cnnlstm_lstm_forecast_embedding_normalvalue(meo_conf=(3, 5, 3, 3), hisAQ_conf=(3, 6), external_dim=8,
+                                                     nb_meo_conv=2, forecast_dim=13,
+                                                     nb_meo_lstm_encode=1, nb_meo_lstm_decode=1, nb_aq_lstm_encode=1,
+                                                     nb_aq_lstm_decode=1):
+    main_inputs = []
+    main_outputs = []
+    # the first meo_part
+    input = Input(shape=meo_conf)
+    main_inputs.append(input)
+
+    conv = input
+
+    for nb in range(nb_meo_conv):
+        conv = TimeDistributed(Conv2D(filters=32, kernel_size=(3, 3), activation="relu", padding='same'))(conv)
+
+    flatten = TimeDistributed(Flatten())(conv)
+    dense1 = TimeDistributed(Dense(128, activation='relu'))(flatten)
+    lstm_1 = dense1
+    for nb in range(nb_meo_lstm_encode - 1):
+        lstm_1 = LSTM(units=64, return_sequences=True, activation="relu")(lstm_1)
+    lstm_1 = LSTM(units=64, return_sequences=False, activation="relu")(lstm_1)
+    repeat_lstm_1 = RepeatVector(predict_interval)(lstm_1)
+    for nb in range(nb_meo_lstm_decode):
+        repeat_lstm_1 = LSTM(units=64, return_sequences=True, activation="relu")(repeat_lstm_1)
+    main_outputs.append(repeat_lstm_1)
+
+    # the second aq_part
+    input = Input(shape=hisAQ_conf)
+    main_inputs.append(input)
+    lstm_2 = input
+    for nb in range(nb_aq_lstm_encode - 1):
+        lstm_2 = LSTM(units=64, return_sequences=True, activation="relu")(lstm_2)
+    lstm_2 = LSTM(units=64, return_sequences=False, activation="relu")(lstm_2)
+    repeat_lstm_2 = RepeatVector(predict_interval)(lstm_2)
+    for nb in range(nb_aq_lstm_decode):
+        repeat_lstm_2 = LSTM(units=64, return_sequences=True, activation="relu")(repeat_lstm_2)
+    main_outputs.append(repeat_lstm_2)
+
+    # The forecasting data part
+    input = Input(shape=(predict_interval, forecast_dim))
+    main_inputs.append(input)
+    lstm_forecast = LSTM(units=forecast_dim, return_sequences=True, activation="relu")(input)
+    main_outputs.append(lstm_forecast)
+
+    # the fourth external_part
+    if external_dim > 0:
+        input = Input(shape=(external_dim,))
+        main_inputs.append(input)
+        dense = Dense(32, activation='relu')(input)
+        dense = Dense(32, activation='relu')(dense)
+        repeat_dense = RepeatVector(predict_interval)(dense)
+        main_outputs.append(repeat_dense)
+    # concatenate three features
+    all_features = keras.layers.concatenate(main_outputs, axis=-1)
+    all_dense = TimeDistributed(Dense(32, activation='relu'))(all_features)
+    output = TimeDistributed(Dense(3, activation='tanh'))(all_dense)
+    model = Model(input=main_inputs, output=output)
+    plot_model(model)
     return model
 
 
@@ -241,31 +303,38 @@ def AQNet_cnn_sharelstm_embedding_normalvalue(meo_conf=(3, 5, 3, 3), hisAQ_conf=
 
 
 if __name__ == '__main__':
-    # >>>>>   AQNet_cnnlstm_lstm_embedding_realvalue
-    model = AQNet_cnnlstm_lstm_embedding_realvalue()
+    # # >>>>>   AQNet_cnnlstm_lstm_embedding_realvalue
+    # model = AQNet_cnnlstm_lstm_embedding_realvalue()
+    # adam = Adam(lr=0.001)
+    # model.compile(loss='mse', optimizer=adam)
+    # model.summary()
+    # hyperparams_name = 'AQNet_cnnlstm_lstm_embedding_realvalue'
+    # plot_model(model, "{}.png".format(hyperparams_name), show_shapes=True)
+    # # >>>>>>   AQNet_cnnlstm_lstm_embedding_normalvalue
+    # model = AQNet_cnnlstm_lstm_embedding_normalvalue()
+    # adam = Adam(lr=0.001)
+    # model.compile(loss='mse', optimizer=adam)
+    # model.summary()
+    # hyperparams_name = 'AQNet_cnnlstm_lstm_embedding_normalvalue'
+    # plot_model(model, "{}.png".format(hyperparams_name), show_shapes=True)
+    # # >>>>>>   AQNet_cnn_sharelstm_embedding_realvalue
+    # model = AQNet_cnn_sharelstm_embedding_realvalue()
+    # adam = Adam(lr=0.001)
+    # model.compile(loss='mse', optimizer=adam)
+    # model.summary()
+    # hyperparams_name = 'AQNet_cnn_sharelstm_embedding_realvalue'
+    # plot_model(model, "{}.png".format(hyperparams_name), show_shapes=True)
+    # # >>>>>>   AQNet_cnn_sharelstm_embedding_normalvalue
+    # model = AQNet_cnn_sharelstm_embedding_normalvalue()
+    # adam = Adam(lr=0.001)
+    # model.compile(loss='mse', optimizer=adam)
+    # model.summary()
+    # hyperparams_name = 'AQNet_cnn_sharelstm_embedding_normalvalue'
+    # plot_model(model, "{}.png".format(hyperparams_name), show_shapes=True)
+
+    model = AQNet_cnnlstm_lstm_forecast_embedding_normalvalue()
     adam = Adam(lr=0.001)
     model.compile(loss='mse', optimizer=adam)
     model.summary()
-    hyperparams_name = 'AQNet_cnnlstm_lstm_embedding_realvalue'
-    plot_model(model, "{}.png".format(hyperparams_name), show_shapes=True)
-    # >>>>>>   AQNet_cnnlstm_lstm_embedding_normalvalue
-    model = AQNet_cnnlstm_lstm_embedding_normalvalue()
-    adam = Adam(lr=0.001)
-    model.compile(loss='mse', optimizer=adam)
-    model.summary()
-    hyperparams_name = 'AQNet_cnnlstm_lstm_embedding_normalvalue'
-    plot_model(model, "{}.png".format(hyperparams_name), show_shapes=True)
-    # >>>>>>   AQNet_cnn_sharelstm_embedding_realvalue
-    model = AQNet_cnn_sharelstm_embedding_realvalue()
-    adam = Adam(lr=0.001)
-    model.compile(loss='mse', optimizer=adam)
-    model.summary()
-    hyperparams_name = 'AQNet_cnn_sharelstm_embedding_realvalue'
-    plot_model(model, "{}.png".format(hyperparams_name), show_shapes=True)
-    # >>>>>>   AQNet_cnn_sharelstm_embedding_normalvalue
-    model = AQNet_cnn_sharelstm_embedding_normalvalue()
-    adam = Adam(lr=0.001)
-    model.compile(loss='mse', optimizer=adam)
-    model.summary()
-    hyperparams_name = 'AQNet_cnn_sharelstm_embedding_normalvalue'
+    hyperparams_name = 'AQNet_cnnlstm_lstm_forecast_embedding_normalvalue'
     plot_model(model, "{}.png".format(hyperparams_name), show_shapes=True)

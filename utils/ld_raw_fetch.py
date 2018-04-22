@@ -124,7 +124,7 @@ def load_aq_dicts_original():
             reader = csv.reader(aq_file, delimiter=',')
             for row in reader:
                 try:
-                    aq_dict[row[0]] = list(map(float_m, row[1:4]))
+                    aq_dict[row[0]] = list(map(float_m_none, row[1:4]))
                     valid_count += 1
                 except ValueError:
                     loss_count += 1

@@ -146,7 +146,7 @@ if __name__ == '__main__':
         h5_file.create_dataset("history", data=np.asarray(history_matrix))
         h5_file.create_dataset("predict", data=np.asarray(predict_matrix))
         h5_file.create_dataset("timestep", data=np.asarray(dt_int_array))
-        h5_file.create_dataset("forecast", data=np.asarray(fake_forecast_matrix))
+        h5_file.create_dataset("weather_forecast", data=np.asarray(fake_forecast_matrix))
         h5_file.flush()
         h5_file.close()
         aq_count += 1

@@ -129,7 +129,7 @@ def AQNet_cnnlstm_lstm_embedding_normalvalue(meo_conf=(3, 5, 3, 3), hisAQ_conf=(
 
 
 def AQNet_cnnlstm_lstm_forecast_embedding_normalvalue(meo_conf=(3, 5, 3, 3), hisAQ_conf=(3, 6), external_dim=8,
-                                                     nb_meo_conv=2, forecast_dim=13,
+                                                     nb_meo_conv=2, forecast_dim=4,
                                                      nb_meo_lstm_encode=1, nb_meo_lstm_decode=1, nb_aq_lstm_encode=1,
                                                      nb_aq_lstm_decode=1):
     main_inputs = []

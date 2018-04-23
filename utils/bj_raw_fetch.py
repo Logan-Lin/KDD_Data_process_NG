@@ -1,14 +1,16 @@
 import csv
+from datetime import datetime, timedelta
+
 from progressbar import ProgressBar as PB, Bar, Percentage
 from time import sleep
 
+from utils.tools import per_delta
+import numpy as np
 
-def float_m(value, throw=True):
+
+def float_m(value):
     if value is None or len(value) == 0:
-        if throw:
-            raise (ValueError("Data loss here"))
-        else:
-            return None
+        raise (ValueError("Data loss here"))
     return float(value)
 
 
@@ -32,7 +34,6 @@ with open("../data/Beijing_AirQuality_Stations_cn.csv") as read_file:
 
 # Load grid location dict
 grid_location = dict()
-grid_location_r = dict()
 with open("../data/beijing_grid_location.csv") as read_file:
     reader = csv.reader(read_file, delimiter=',')
     for row in reader:
@@ -67,7 +68,10 @@ def load_aq_original():
         with open("../data/aq/" + aq_name + ".csv") as aq_file:
             reader = csv.reader(aq_file, delimiter=',')
             for row in reader:
-                aq_dict[row[0]] = list(map(float_m_none, row[1:]))
+                try:
+                    aq_dict[row[0]] = list(map(float_m_none, row[1:]))
+                except ValueError:
+                    continue
         aq_dicts[aq_name] = aq_dict
     return aq_location, aq_dicts
 
@@ -111,3 +115,18 @@ def load_grid():
 
 def load_location():
     return aq_location, grid_location
+
+
+if __name__ == '__main__':
+    grid_dicts = load_grid_dicts()
+    print(max(np.array(list(grid_dicts["beijing_grid_000"].values()))[:, 3]))
+
+    # aq_lo, aq_di = load_aq()
+    # format_string = "%Y-%m-%d %H:%M:%S"
+    # start_datetime, end_datetime = datetime.strptime("2017-01-01 00:00:00", format_string), \
+    #                                datetime.strptime("2018-04-22 01:00:00", format_string)
+    # for dt_object in per_delta(start_datetime, end_datetime, timedelta(hours=1)):
+    #     try:
+    #         print(dt_object.strftime(format_string), aq_di["daxing_aq"][dt_object.strftime(format_string)])
+    #     except KeyError:
+    #         pass

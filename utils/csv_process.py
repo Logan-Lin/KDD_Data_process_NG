@@ -240,16 +240,20 @@ def csv_bj_fill():
         for dt_o in tools.per_delta(start_dt_o, end_dt_o, timedelta(hours=1)):
             # dt_s = dt_o.strftime(format_string_m)
             dt_s = dt_o.strftime(format_string_m)
+            if dt_s == "2018-04-22 00:00:00":
+                print()
             data = aq_dict[dt_s]
             previous = aq_dict[(dt_o - timedelta(hours=1)).strftime(format_string_m)]
             following = aq_dict[(dt_o + timedelta(hours=1)).strftime(format_string_m)]
+            modified = False
             for column in range(len(data)):
                 if data[column] is None:
                     if previous[column] is not None and following[column] is not None:
                         data[column] = (previous[column] + following[column]) / 2
                         count += 1
+                        modified = True
                     else:
-                        continue
+                        pass
             del aq_dict[dt_s]
             aq_dict[dt_s] = data
         print("Filled data in ", aq_name, ": ", count, sep='')
@@ -262,12 +266,14 @@ def csv_bj_fill():
                 file.flush()
 
 
-format_string_m = "%Y-%m-%d %H:%M:%S"
-format_string = "%Y/%m/%d %H:%M"
-# split_ld_meo_api_data()
-# split_ld_aq_api_data()
-# ld_forecast_aq_split()
-# ld_other_aq_split()
-csv_ld_fill()
-# split_aq_api_data()
-# split_meo_api_data()
+if __name__ == '__main__':
+    format_string_m = "%Y-%m-%d %H:%M:%S"
+    format_string = "%Y/%m/%d %H:%M"
+    # split_ld_meo_api_data()
+    # split_ld_aq_api_data()
+    # ld_forecast_aq_split()
+    # ld_other_aq_split()
+    # csv_ld_fill()
+    csv_bj_fill()
+    # split_aq_api_data()
+    # split_meo_api_data()

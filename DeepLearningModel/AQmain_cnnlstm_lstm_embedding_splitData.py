@@ -190,7 +190,7 @@ if __name__ == '__main__':
             train.train_AQNet_cnnlstm_lstm_forecast_embedding_normalvalue(X_train, Y_train, len_history, meo_size,
                                                                           nb_meo_lstm_encode, nb_meo_lstm_decode,
                                                                           nb_aq_lstm_encode,
-                                                                          nb_aq_lstm_decode, forecast_dim=13,
+                                                                          nb_aq_lstm_decode, forecast_dim=4,
                                                                           external_dim=external_dim)
         else:
             train.train_AQNet_cnnlstm_lstm_embedding_realvalue(X_train, Y_train, len_history, meo_size,

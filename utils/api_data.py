@@ -30,9 +30,10 @@ def fetch_data(url, file_header):
         print("Finished fetching", file_header, "data.")
 
 
-url = "https://biendata.com/competition/meteorology/bj_grid/" + \
-      start_string + "/" + end_string + "/2k0d1d8"
-fetch_data(url, "meo")
-# url = "https://biendata.com/competition/airquality/bj/" + \
-#       start_string + "/" + end_string + "/2k0d1d8"
-# fetch_data(url, "aq")
+if __name__ == '__main__':
+    url = "https://biendata.com/competition/meteorology/bj_grid/" + \
+          start_string + "/" + end_string + "/2k0d1d8"
+    fetch_data(url, "meo")
+    # url = "https://biendata.com/competition/airquality/bj/" + \
+    #       start_string + "/" + end_string + "/2k0d1d8"
+    # fetch_data(url, "aq")

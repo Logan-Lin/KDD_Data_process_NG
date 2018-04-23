@@ -14,7 +14,9 @@ def remove_empty_line(file_name):
     print("Finished processing", file_name)
 
 
-file_path = "../DeepLearningModel/"
-only_py = [join(file_path, f) for f in listdir(file_path) if isfile(join(file_path, f)) and f.split(".")[-1] == 'py']
-for py_file in only_py:
-    remove_empty_line(py_file)
+if __name__ == '__main__':
+    file_path = "../DeepLearningModel/"
+    only_py = [join(file_path, f) for f in listdir(file_path)
+               if isfile(join(file_path, f)) and f.split(".")[-1] == 'py']
+    for py_file in only_py:
+        remove_empty_line(py_file)

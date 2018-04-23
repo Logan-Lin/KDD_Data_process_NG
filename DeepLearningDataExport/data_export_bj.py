@@ -1,14 +1,15 @@
 import math
 import os
 from datetime import datetime, timedelta
+from progressbar import ProgressBar as PB, Bar, Percentage
 import time as ti
 
 import h5py
 import numpy as np
 from matplotlib import pyplot as plt
 
-from utils.bj_raw_fetch import load_all
-from utils.tools import per_delta
+from utils.bj_raw_fetch import load_all, load_aq_original
+from utils.tools import per_delta, angle_to_int
 
 
 # Get the nearest grid id and coordination close to the given coordinate
@@ -77,11 +78,23 @@ def get_grids(aq_name, n):
     return [coor_to_id(grid_coor) for grid_coor in grid_coors], np.array(grid_coors)
 
 
+def get_fake_forecast_data(aq_name, dt_string):
+    grid_id, grid_coor = get_nearest(aq_location[aq_name])
+    data_row = grid_dicts[grid_id][dt_string]
+    # Temperature, humidity, wind direction, wind speed
+    return [data_row[0], data_row[2], angle_to_int(data_row[3]), data_row[4]]
+
+
 aq_location, grid_location, aq_dicts, grid_dicts = load_all()
+# delete, aq_dicts = load_aq_original()
+all_grid_data = np.array(grid_dicts.values())
 format_string = "%Y-%m-%d %H:%M:%S"
 date_format_string = "%Y_%m_%d"
 start_datetime, end_datetime = datetime.strptime("2017-01-01 00:00:00", format_string), \
                                datetime.strptime("2018-04-22 00:00:00", format_string)
+diff = end_datetime - start_datetime
+days, seconds = diff.days, diff.seconds
+delta_time = int(days * 24 + seconds // 3600)
 time_span = 24
 predict_span = 50
 
@@ -95,47 +108,59 @@ sequence = [[37, 39, 41, 43, 45, 47, 38],
             [26, 35, 33, 31, 29, 27, 25]]
 # sequence = [[5, 7, 6], [4, 0, 8], [2, 3, 1]]
 data_dir = "../data/h5"
-if not os.path.exists(data_dir):
-    os.makedirs(data_dir)
-aq_count = 0
-for aq_name in aq_location.keys():
-    valid_count = 0
-    near_grids, grid_coor_array = get_grids(aq_name, grid_circ)
 
-    # Validate the near grid matrix algorithm
-    # plt.figure()
-    # plt.title(aq_name)
-    # plt.plot(aq_location[aq_name][0], aq_location[aq_name][1], '.')
-    # plt.plot(grid_coor_array[:, 0], grid_coor_array[:, 1], '.')
-    # plt.show()
+if __name__ == '__main__':
+    if not os.path.exists(data_dir):
+        os.makedirs(data_dir)
+    aq_count = 0
+    for aq_name in aq_location.keys():
+        aggregate = 0
 
-    # Exporting data from start to end
-    grid_matrix = []
-    history_matrix = []
-    predict_matrix = []
-    dt_int_array = []
-    for dt_object in per_delta(start_datetime, end_datetime, timedelta(hours=1)):
-        dt_string = dt_object.strftime(format_string)
+        ti.sleep(0.1)
+        bar = PB(initial_value=0, maxval=delta_time + 1,
+                 widgets=[aq_name, ' ', Bar('=', '[', ']'), ' ', Percentage()])
 
-        # Fetch history and prediction data, check data validation in the same time
-        aq_matrix, predict, near_grid_data = check_valid(aq_name, dt_object, time_span)
-        if aq_matrix is None:
-            continue
+        valid_count = 0
+        near_grids, grid_coor_array = get_grids(aq_name, grid_circ)
 
-        # Append this hour's data into per-day data
-        grid_matrix.append(near_grid_data)
-        history_matrix.append(aq_matrix)
-        predict_matrix.append(predict)
-        dt_int_array.append(int(ti.mktime(dt_object.timetuple())))
-        valid_count += 1
+        # Validate the near grid matrix algorithm
+        # plt.figure()
+        # plt.title(aq_name)
+        # plt.plot(aq_location[aq_name][0], aq_location[aq_name][1], '.')
+        # plt.plot(grid_coor_array[:, 0], grid_coor_array[:, 1], '.')
+        # plt.show()
 
-    h5_file = h5py.File("".join([data_dir, "/", aq_name, ".h5"]), "w")
-    h5_file.create_dataset("grid", data=np.asarray(grid_matrix))
-    h5_file.create_dataset("history", data=np.asarray(history_matrix))
-    h5_file.create_dataset("predict", data=np.asarray(predict_matrix))
-    h5_file.create_dataset("timestep", data=np.asarray(dt_int_array))
-    h5_file.flush()
-    h5_file.close()
-    aq_count += 1
-    print("Valid data count in", aq_name, valid_count, end=', ')
-    print("data exported %3.f%%" % (100 * aq_count / len(aq_location.keys())))
+        # Exporting data from start to end
+        grid_matrix = []
+        history_matrix = []
+        predict_matrix = []
+        dt_int_array = []
+        fake_forecast_matrix = []
+        for dt_object in per_delta(start_datetime, end_datetime, timedelta(hours=1)):
+            aggregate += 1
+            bar.update(aggregate)
+            dt_string = dt_object.strftime(format_string)
+
+            # Fetch history and prediction data, check data validation in the same time
+            aq_matrix, predict, near_grid_data = check_valid(aq_name, dt_object, time_span)
+            if aq_matrix is None:
+                continue
+
+            # Append this hour's data into per-day data
+            grid_matrix.append(near_grid_data)
+            history_matrix.append(aq_matrix)
+            predict_matrix.append(predict)
+            dt_int_array.append(int(ti.mktime(dt_object.timetuple())))
+            fake_forecast_matrix.append(get_fake_forecast_data(aq_name, dt_string))
+            valid_count += 1
+
+        h5_file = h5py.File("".join([data_dir, "/", aq_name, ".h5"]), "w")
+        h5_file.create_dataset("grid", data=np.asarray(grid_matrix))
+        h5_file.create_dataset("history", data=np.asarray(history_matrix))
+        h5_file.create_dataset("predict", data=np.asarray(predict_matrix))
+        h5_file.create_dataset("timestep", data=np.asarray(dt_int_array))
+        h5_file.create_dataset("forecast", data=np.asarray(fake_forecast_matrix))
+        h5_file.flush()
+        h5_file.close()
+        aq_count += 1
+        print(" - valid%6.2f%%(%5d)" % ((100 * valid_count / aggregate), valid_count))

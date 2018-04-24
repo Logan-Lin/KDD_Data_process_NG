@@ -61,7 +61,7 @@ def load_aq_dicts():
             reader = csv.reader(aq_file, delimiter=',')
             for row in reader:
                 try:
-                    aq_dict[row[0]] = list(map(float_m_none, row[1:3]))
+                    aq_dict[row[0]] = list(map(float_m, row[1:4]))
                     valid_count += 1
                 except ValueError:
                     loss_count += 1
@@ -71,8 +71,50 @@ def load_aq_dicts():
     return aq_dicts
 
 
-def load_aq_modified_dicts():
-    aq_dicts = load_aq_dicts()
+def load_aq_no_no2_dicts():
+    aq_dicts = dict()
+    print("Loading aq data...")
+    for aq_name in aq_location.keys():
+        loss_count = 0
+        valid_count = 0
+        aq_dict = dict()
+        with open("../data_ld_m/aq/" + aq_name + ".csv", "r") as aq_file:
+            reader = csv.reader(aq_file, delimiter=',')
+            for row in reader:
+                try:
+                    aq_dict[row[0]] = list(map(float_m, row[1:3]))
+                    valid_count += 1
+                except ValueError:
+                    loss_count += 1
+                    pass
+        # print(aq_name, " loss ", loss_count, ", loss ", 100 * (loss_count / (valid_count + loss_count)), sep='')
+        aq_dicts[aq_name] = aq_dict
+    return aq_dicts
+
+
+def load_aq_all_dicts():
+    aq_dicts = dict()
+    print("Loading aq data...")
+    for aq_name in aq_location.keys():
+        loss_count = 0
+        valid_count = 0
+        aq_dict = dict()
+        with open("../data_ld_m/aq/" + aq_name + ".csv", "r") as aq_file:
+            reader = csv.reader(aq_file, delimiter=',')
+            for row in reader:
+                try:
+                    aq_dict[row[0]] = list(map(float_m_none, row[1:4]))
+                    valid_count += 1
+                except ValueError:
+                    loss_count += 1
+                    pass
+        # print(aq_name, " loss ", loss_count, ", loss ", 100 * (loss_count / (valid_count + loss_count)), sep='')
+        aq_dicts[aq_name] = aq_dict
+    return aq_dicts
+
+
+def load_aq_modified_no2_dicts():
+    aq_dicts = load_aq_all_dicts()
     aq_modified_dicts = dict()
     print("Loading aq modified data...")
     for aq_name in aq_location.keys():
@@ -104,6 +146,8 @@ def get_near_no2(aq_dicts, aq_name, dt_string):
     for near_aq_name, distance in distance_matrix:
         try:
             result = aq_dicts[near_aq_name][dt_string][2]
+            if result is None:
+                raise KeyError("Data loss here")
             valid = True
             break
         except KeyError:
@@ -194,11 +238,11 @@ def test_data_loss():
 
 
 def load_all():
-    return aq_location, grid_location, load_aq_dicts(), load_grid_dicts()
+    return aq_location, grid_location, load_aq_no_no2_dicts(), load_grid_dicts()
 
 
 def load_aq():
-    return aq_location, load_aq_dicts()
+    return aq_location, load_aq_no_no2_dicts()
 
 
 def load_grid():
@@ -210,5 +254,5 @@ def load_location():
 
 
 def load_aq_original():
-    return aq_location, load_aq_dicts_original()
+    return aq_location_all, load_aq_dicts_original()
 

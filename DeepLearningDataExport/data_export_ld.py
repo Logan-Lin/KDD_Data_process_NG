@@ -8,8 +8,8 @@ import h5py
 import numpy as np
 import matplotlib.pyplot as plt
 
-from utils.ld_raw_fetch import load_all, load_aq_modified_dicts
-from utils.tools import per_delta, angle_to_int
+from utils.ld_raw_fetch import load_all, load_aq_modified_no2_dicts
+from utils.tools import per_delta, angle_to_int, get_one_hot
 
 
 # Get the nearest grid id and coordination close to the given coordinate
@@ -41,6 +41,7 @@ def check_valid(aq_name, start_object, span):
         aq_dict = aq_dicts[aq_name]
         aq_matrix = []
         near_grid_data = []
+        fake_forecast_data = []
         for i in range(span - 1, -1, -1):
             valid_dt_string = (start_object - timedelta(hours=i)).strftime(format_string)
             aq_matrix.append(aq_dict[valid_dt_string])
@@ -56,16 +57,18 @@ def check_valid(aq_name, start_object, span):
         for i in range(1, predict_span + 1):
             predict_matrix.append([aq_dict[(start_object + timedelta(hours=i)).strftime(format_string)]
                                    [column] for column in range(2)])
+            fake_forecast_data.append(get_fake_forecast_data(
+                aq_name, (start_object + timedelta(hours=i)).strftime(format_string)))
     except KeyError:
-        return None, None, None
-    return aq_matrix, predict_matrix, near_grid_data
+        return None, None, None, None
+    return aq_matrix, predict_matrix, near_grid_data, fake_forecast_data
 
 
 def get_fake_forecast_data(aq_name, dt_string):
     grid_id, grid_coor = get_nearest(aq_location[aq_name])
     data_row = grid_dicts[grid_id][dt_string]
     # Temperature, humidity, wind direction, wind speed
-    return [data_row[0], data_row[2], angle_to_int(data_row[3]), data_row[4]]
+    return [data_row[0], data_row[2], data_row[4]] + get_one_hot(angle_to_int(data_row[3]), 16)
 
 
 def get_grids(aq_name, n):
@@ -84,7 +87,6 @@ def get_grids(aq_name, n):
 
 
 if __name__ == '__main__':
-    # aq_dicts = load_aq_modified_dicts()
     aq_location, grid_location, aq_dicts, grid_dicts = load_all()
     format_string = "%Y-%m-%d %H:%M:%S"
     start_datetime, end_datetime = datetime.strptime("2017-01-01 00:00:00", format_string), \
@@ -129,7 +131,7 @@ if __name__ == '__main__':
             dt_string = dt_object.strftime(format_string)
 
             # Fetch history and prediction data, check data validation in the same time
-            aq_matrix, predict, near_grid_data = check_valid(aq_name, dt_object, time_span)
+            aq_matrix, predict, near_grid_data, fake_forecast_data = check_valid(aq_name, dt_object, time_span)
             if aq_matrix is None:
                 continue
 
@@ -137,7 +139,7 @@ if __name__ == '__main__':
             history_matrix.append(aq_matrix)
             predict_matrix.append(predict)
             dt_int_array.append(int(mktime(dt_object.timetuple())))
-            fake_forecast_matrix.append(get_fake_forecast_data(aq_name, dt_string))
+            fake_forecast_matrix.append(fake_forecast_data)
             valid_count += 1
 
         h5_file = h5py.File("".join([data_dir, "/",

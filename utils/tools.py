@@ -15,6 +15,7 @@ def cal_dis(coor1, coor2):
 
 
 def angle_to_int(angle):
+    angle = angle % 360
     angle_split_array = [11.25]
     while True:
         append_value = angle_split_array[-1] + 22.5
@@ -22,9 +23,9 @@ def angle_to_int(angle):
             break
         angle_split_array.append(append_value)
     index = 0
-    sequence = [4, 8, 12, 0, 6, 2, 10, 14]
+    sequence = [3, 11, 5, 10, 0, 8, 4, 9, 1, 12, 6, 13, 2, 14, 7, 15]
     while True:
-        if angle_split_array[0] > angle or angle_split_array[-1] < angle:
+        if angle_split_array[0] >= angle or angle_split_array[-1] < angle:
             index = 0
             break
         if angle_split_array[index - 1] < angle <= angle_split_array[index]:
@@ -33,5 +34,12 @@ def angle_to_int(angle):
     return sequence[index]
 
 
+def get_one_hot(value, aggregate):
+    one_hot_array = [0] * aggregate
+    one_hot_array[value] = 1
+    return one_hot_array
+
+
 if __name__ == '__main__':
-    angle_to_int(100)
+    for i in range(0, 361):
+        print(i, get_one_hot(angle_to_int(i), 16))

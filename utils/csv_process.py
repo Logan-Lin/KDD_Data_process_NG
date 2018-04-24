@@ -186,6 +186,17 @@ def csv_ld_fill():
             except KeyError:
                 aq_dict[dt_s] = [None] * 3
 
+        for dt_o in tools.per_delta(start_dt_o, end_dt_o, timedelta(hours=1)):
+            dt_s = format_ld_dt_string(dt_o)
+            if dt_s == "2018/3/30 22:00" and aq_name == "BX1":
+                print()
+            data = aq_dict[dt_s]
+            for column in range(len(data)):
+                if data[column] is not None and data[column] < 0:
+                    data[column] = None
+            del aq_dict[dt_s]
+            aq_dict[dt_s] = data
+
         start_dt_o += timedelta(hours=1)
         end_dt_o -= timedelta(hours=1)
         count = 0
@@ -197,8 +208,8 @@ def csv_ld_fill():
             previous = aq_dict[format_ld_dt_string(dt_o - timedelta(hours=1))]
             following = aq_dict[format_ld_dt_string(dt_o + timedelta(hours=1))]
             for column in range(len(data)):
-                if data[column] is None or data[column] < 0 or \
-                        (column == 1 and data[column] > 200) or (column == 2 and data[column] > 300):
+                if (data[column] is None) or \
+                        (column == 1 and (data[column] > 200)) or (column == 2 and (data[column] > 300)):
                     if previous[column] is not None and following[column] is not None:
                         data[column] = (previous[column] + following[column]) / 2
                         count += 1
@@ -273,7 +284,7 @@ if __name__ == '__main__':
     # split_ld_aq_api_data()
     # ld_forecast_aq_split()
     # ld_other_aq_split()
-    # csv_ld_fill()
-    csv_bj_fill()
+    csv_ld_fill()
+    # csv_bj_fill()
     # split_aq_api_data()
     # split_meo_api_data()

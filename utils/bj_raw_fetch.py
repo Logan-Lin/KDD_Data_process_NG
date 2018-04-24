@@ -20,6 +20,12 @@ def float_m_none(value):
     return float(value)
 
 
+def float_m_zero(value):
+    if value is None or len(value) == 0:
+        return -1
+    return float(value)
+
+
 # Load all needed data into dicts and lists.
 # Load aq station location dict
 aq_location = dict()
@@ -54,6 +60,23 @@ def load_aq_dicts():
             for row in reader:
                 try:
                     aq_dict[row[0]] = list(map(float_m, row[1:]))
+                except ValueError:
+                    pass
+        aq_dicts[aq_name] = aq_dict
+    return aq_dicts
+
+
+def load_aq_pm10_dicts():
+    aq_dicts = dict()
+    print("Loading aq data...")
+    for aq_name in aq_location.keys():
+        aq_dict = dict()
+        with open("../data_m/aq/" + aq_name + ".csv") as aq_file:
+            reader = csv.reader(aq_file, delimiter=',')
+            for row in reader:
+                try:
+                    row_convert = [row[1]] + row[3:]
+                    aq_dict[row[0]] = list(map(float_m, row_convert))
                 except ValueError:
                     pass
         aq_dicts[aq_name] = aq_dict
@@ -101,12 +124,32 @@ def load_grid_dicts():
     return grid_dicts
 
 
+def load_aq_all_dicts():
+    aq_dicts = dict()
+    print("Loading aq data...")
+    for aq_name in aq_location.keys():
+        aq_dict = dict()
+        with open("../data_m/aq/" + aq_name + ".csv") as aq_file:
+            reader = csv.reader(aq_file, delimiter=',')
+            for row in reader:
+                try:
+                    aq_dict[row[0]] = list(map(float_m_zero, row[1:]))
+                except ValueError:
+                    pass
+        aq_dicts[aq_name] = aq_dict
+    return aq_dicts
+
+
 def load_all():
     return aq_location, grid_location, load_aq_dicts(), load_grid_dicts()
 
 
 def load_aq():
     return aq_location, load_aq_dicts()
+
+
+def load_all_aq():
+    return aq_location, load_aq_all_dicts()
 
 
 def load_grid():
@@ -118,8 +161,7 @@ def load_location():
 
 
 if __name__ == '__main__':
-    grid_dicts = load_grid_dicts()
-    print(max(np.array(list(grid_dicts["beijing_grid_000"].values()))[:, 3]))
+    load_aq_pm10_dicts()
 
     # aq_lo, aq_di = load_aq()
     # format_string = "%Y-%m-%d %H:%M:%S"

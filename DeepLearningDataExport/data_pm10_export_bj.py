@@ -87,23 +87,23 @@ def get_fake_forecast_data(aq_name, dt_string):
     return [data_row[0], data_row[2], data_row[4]] + get_one_hot(angle_to_int(data_row[3]), 16)
 
 
+aq_location, grid_location, aq_dicts, grid_dicts = load_all()
+aq_dicts_no_pm10 = load_aq_pm10_dicts()
+# aq_dicts_no_pm10 = aq_dicts
+format_string = "%Y-%m-%d %H:%M:%S"
+date_format_string = "%Y_%m_%d"
+start_datetime, end_datetime = datetime.strptime("2017-01-01 00:00:00", format_string), \
+                               datetime.strptime("2018-04-22 00:00:00", format_string)
+diff = end_datetime - start_datetime
+days, seconds = diff.days, diff.seconds
+delta_time = int(days * 24 + seconds // 3600)
+time_span = 24
+predict_span = 50
+
+grid_circ = 7
+data_dir = "../data/h5_pm10"
+
 if __name__ == '__main__':
-    aq_location, grid_location, aq_dicts, grid_dicts = load_all()
-    # aq_dicts_no_pm10 = load_aq_pm10_dicts()
-    aq_dicts_no_pm10 = aq_dicts
-    format_string = "%Y-%m-%d %H:%M:%S"
-    date_format_string = "%Y_%m_%d"
-    start_datetime, end_datetime = datetime.strptime("2017-01-01 00:00:00", format_string), \
-                                   datetime.strptime("2018-04-22 00:00:00", format_string)
-    diff = end_datetime - start_datetime
-    days, seconds = diff.days, diff.seconds
-    delta_time = int(days * 24 + seconds // 3600)
-    time_span = 24
-    predict_span = 50
-
-    grid_circ = 7
-    data_dir = "../data/h5_history"
-
     if not os.path.exists(data_dir):
         os.makedirs(data_dir)
     aq_count = 0
@@ -148,16 +148,13 @@ if __name__ == '__main__':
             fake_forecast_matrix.append(fake_forecast_data)
             valid_count += 1
 
-        try:
-            h5_file = h5py.File("".join([data_dir, "/", aq_name, ".h5"]), "w")
-            h5_file.create_dataset("grid", data=np.asarray(grid_matrix))
-            h5_file.create_dataset("history", data=np.asarray(history_matrix))
-            h5_file.create_dataset("predict", data=np.asarray(predict_matrix))
-            h5_file.create_dataset("timestep", data=np.asarray(dt_int_array))
-            h5_file.create_dataset("weather_forecast", data=np.asarray(fake_forecast_matrix))
-            h5_file.flush()
-            h5_file.close()
-        except:
-            print()
+        h5_file = h5py.File("".join([data_dir, "/", aq_name, ".h5"]), "w")
+        h5_file.create_dataset("grid", data=np.asarray(grid_matrix))
+        h5_file.create_dataset("history", data=np.asarray(history_matrix))
+        h5_file.create_dataset("predict", data=np.asarray(predict_matrix))
+        h5_file.create_dataset("timestep", data=np.asarray(dt_int_array))
+        h5_file.create_dataset("weather_forecast", data=np.asarray(fake_forecast_matrix))
+        h5_file.flush()
+        h5_file.close()
         aq_count += 1
         print(" - valid%6.2f%%(%5d)" % ((100 * valid_count / aggregate), valid_count))

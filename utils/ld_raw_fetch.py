@@ -2,8 +2,13 @@ import csv
 from progressbar import ProgressBar as PB, Bar, Percentage
 from time import sleep
 import operator
+import math
 
-from utils.tools import cal_dis
+
+def cal_dis(coor1, coor2):
+    dist = math.sqrt(math.pow(float(coor1[0]) - float(coor2[0]), 2) +
+                     (math.pow(float(coor1[1]) - float(coor2[1]), 2)))
+    return dist
 
 
 def float_m(value):
@@ -50,14 +55,14 @@ with open("../data/London_grid_location.csv", "r") as read_file:
 
 
 # Load aq station info dict
-def load_aq_dicts():
+def load_aq_dicts(start_str="", end_str="", city="ld"):
     aq_dicts = dict()
     print("Loading aq data...")
     for aq_name in aq_location.keys():
         loss_count = 0
         valid_count = 0
         aq_dict = dict()
-        with open("../data_ld_m/aq/" + aq_name + ".csv", "r") as aq_file:
+        with open("../utils/data_{}_api_m/aq/{}_{}/{}.csv".format(city, start_str, end_str, aq_name), "r") as aq_file:
             reader = csv.reader(aq_file, delimiter=',')
             for row in reader:
                 try:
@@ -71,14 +76,14 @@ def load_aq_dicts():
     return aq_dicts
 
 
-def load_aq_no_no2_dicts():
+def load_aq_no_no2_dicts(start_str="", end_str="", city="ld"):
     aq_dicts = dict()
     print("Loading aq data...")
     for aq_name in aq_location.keys():
         loss_count = 0
         valid_count = 0
         aq_dict = dict()
-        with open("../data_ld_m/aq/" + aq_name + ".csv", "r") as aq_file:
+        with open("../utils/data_{}_api_m/aq/{}_{}/{}.csv".format(city, start_str, end_str, aq_name), "r") as aq_file:
             reader = csv.reader(aq_file, delimiter=',')
             for row in reader:
                 try:
@@ -179,7 +184,7 @@ def load_aq_dicts_original():
 
 
 # Load grid meo info dict
-def load_grid_dicts():
+def load_grid_dicts(start_str="", end_str="", city="ld"):
     grid_dicts = dict()
     loaded = 0
 
@@ -189,11 +194,11 @@ def load_grid_dicts():
     print("Loading grid meo data...")
     for grid_name in grid_location.keys():
         grid_dict = dict()
-        with open("../data_ld/meo/" + grid_name + ".csv", "r") as grid_file:
+        with open("../utils/data_{}_api/meo/{}_{}/{}.csv".format(city, start_str, end_str, grid_name), "r") as grid_file:
             reader = csv.reader(grid_file, delimiter=',')
             for row in reader:
                 try:
-                    grid_dict[row[0]] = list(map(float_m, row[1:]))
+                    grid_dict[row[0]] = list(map(float_m, row[2:]))
                 except ValueError:
                     pass
         grid_dicts[grid_name] = grid_dict
@@ -237,8 +242,8 @@ def test_data_loss():
             print()
 
 
-def load_all():
-    return aq_location, grid_location, load_aq_no_no2_dicts(), load_grid_dicts()
+def load_all(start_str, end_str):
+    return aq_location, grid_location, load_aq_no_no2_dicts(start_str, end_str), load_grid_dicts(start_str, end_str)
 
 
 def load_aq():

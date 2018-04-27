@@ -56,8 +56,7 @@ def check_valid(aq_name, start_object, span):
             near_grid_data.append(near_grid_data_onehour)
         predict_matrix = []
         for i in range(1, predict_span + 1):
-            predict_matrix.append([aq_dict[(start_object + timedelta(hours=i)).strftime(format_string)]
-                                   [column] for column in [0, 1, 4]])
+            predict_matrix.append(aq_dict[(start_object + timedelta(hours=i)).strftime(format_string)])
             fake_forecast_data.append(get_fake_forecast_data(
                 aq_name, (start_object + timedelta(hours=i)).strftime(format_string)))
     except KeyError:
@@ -144,20 +143,17 @@ if __name__ == '__main__':
             grid_matrix.append(near_grid_data)
             history_matrix.append(aq_matrix)
             predict_matrix.append(predict)
-            dt_int_array.append(int(ti.mktime(dt_object.timetuple())))
+            dt_int_array.append(dt_object.timestamp())
             fake_forecast_matrix.append(fake_forecast_data)
             valid_count += 1
 
-        try:
-            h5_file = h5py.File("".join([data_dir, "/", aq_name, ".h5"]), "w")
-            h5_file.create_dataset("grid", data=np.asarray(grid_matrix))
-            h5_file.create_dataset("history", data=np.asarray(history_matrix))
-            h5_file.create_dataset("predict", data=np.asarray(predict_matrix))
-            h5_file.create_dataset("timestep", data=np.asarray(dt_int_array))
-            h5_file.create_dataset("weather_forecast", data=np.asarray(fake_forecast_matrix))
-            h5_file.flush()
-            h5_file.close()
-        except:
-            print()
+        h5_file = h5py.File("".join([data_dir, "/", aq_name, ".h5"]), "w")
+        h5_file.create_dataset("grid", data=np.asarray(grid_matrix))
+        h5_file.create_dataset("history", data=np.asarray(history_matrix))
+        h5_file.create_dataset("predict", data=np.asarray(predict_matrix))
+        h5_file.create_dataset("timestep", data=np.asarray(dt_int_array))
+        h5_file.create_dataset("weather_forecast", data=np.asarray(fake_forecast_matrix))
+        h5_file.flush()
+        h5_file.close()
         aq_count += 1
         print(" - valid%6.2f%%(%5d)" % ((100 * valid_count / aggregate), valid_count))

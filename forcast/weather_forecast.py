@@ -18,7 +18,11 @@ headers = {'Accept': '*/*',
            'Connection': 'keep-alive'}
 
 
-def get_data(hour):
+city_url = {"bj": "https://www.accuweather.com/zh/gb/london/ec4a-2/hourly-weather-forecast/328328?hour=%s",
+            "ld": "https://www.accuweather.com/zh/cn/beijing/101924/hourly-weather-forecast/101924?hour=%s"}
+
+
+def get_data(hour, city='bj'):
     """
 	get the weather forecast data in the next eight hours
 
@@ -34,10 +38,11 @@ def get_data(hour):
 	data: list
 		each element contains one feature of weather data, like
 			['温度', '16°', '17°', '18°', '19°', '20°', '19°', '18°', '17°']
+    :param hour:
+    :param city:
 
 	"""
-    url = "https://www.accuweather.com/zh/gb/london/ec4a-2/hourly-weather-forecast/328328?hour=%s" % hour
-    # url = 'https://www.accuweather.com/zh/cn/beijing/101924/hourly-weather-forecast/101924?hour=%s' % hour
+    url = city_url[city] % hour
     logger.debug('fetch url: %s' % url)
     r = requests.get(url, headers=headers)
     soup = BeautifulSoup(r.text, 'lxml')
@@ -76,7 +81,7 @@ def parse_data(data, timestamp):
     return results
 
 
-def get_batch_data(now):
+def get_batch_data(now, city='bj'):
     """
 	get two days weather forecast data from now on
 	Parameters
@@ -94,7 +99,7 @@ def get_batch_data(now):
     for i in range(7):
         delta = timedelta(hours=i * 8)
 
-        data = get_data(now.hour + i * 8)
+        data = get_data(now.hour + i * 8, city)
         logger.info('got data of %s' % (datetime.strftime(now + delta, '%Y-%m-%d %H:00:00')))
         results.extend(parse_data(data, now + delta))
 
@@ -121,18 +126,19 @@ def insert_data_into_file(data, filename='data_ld.txt'):
 	filename: str
         which file you want to save the data
 	"""
-    with open(filename, 'a') as f:
+    with open(filename, 'w') as f:
         f.write(data)
     logger.info('insert data info file successfully!')
 
 
-def fetch():
+def fetch(city='bj'):
     """
 	fetch the data and save them into a file
 	"""
-    now = now = datetime.now()
+    now = datetime.now()
     logger.info('start fetching weather data at %s' % (datetime.strftime(now, '%Y-%m-%d %H:%M:%S')))
-    insert_data_into_file(get_batch_data(now))
+    insert_data_into_file(get_batch_data(now, city),
+                          filename="{}_{}.txt".format(city, datetime.strftime(now, '%m_%d_%H')))
 
 
 if __name__ == '__main__':
@@ -143,7 +149,8 @@ if __name__ == '__main__':
             if success:
                 break
             try:
-                fetch()
+                fetch(city="bj")
+                fetch(city="ld")
                 success = True
             except Exception as e:
                 logger.error(e)
@@ -152,4 +159,4 @@ if __name__ == '__main__':
                 time.sleep(30)
         else:
             logger.error('program has fatal error!')
-        time.sleep(3600)
+        time.sleep(1800)

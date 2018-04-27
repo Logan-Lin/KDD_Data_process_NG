@@ -90,7 +90,7 @@ if __name__ == '__main__':
     all_Y = []
     all_timestampes_Y = []
     for aq_name in aq_location.keys():
-        h5_file = h5py.File("data/h5/" + aq_name + ".h5", "r")
+        h5_file = h5py.File("../data/h5_history/" + aq_name + ".h5", "r")
         all_X_meo.append(h5_file["grid"].value)
         all_X_aq.append(h5_file["history"].value)
         all_Y.append(h5_file["predict"].value)

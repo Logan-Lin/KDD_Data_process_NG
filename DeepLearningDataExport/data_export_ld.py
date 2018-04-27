@@ -55,8 +55,7 @@ def check_valid(aq_name, start_object, span):
             near_grid_data.append(near_grid_data_onehour)
         predict_matrix = []
         for i in range(1, predict_span + 1):
-            predict_matrix.append([aq_dict[(start_object + timedelta(hours=i)).strftime(format_string)]
-                                   [column] for column in range(2)])
+            predict_matrix.append(aq_dict[(start_object + timedelta(hours=i)).strftime(format_string)])
             fake_forecast_data.append(get_fake_forecast_data(
                 aq_name, (start_object + timedelta(hours=i)).strftime(format_string)))
     except KeyError:
@@ -87,10 +86,13 @@ def get_grids(aq_name, n):
 
 
 if __name__ == '__main__':
-    aq_location, grid_location, aq_dicts, grid_dicts = load_all()
+    start_string, end_string = "2018-04-01-20", "2018-04-25-22"
+    aq_location, grid_location, aq_dicts, grid_dicts = load_all(start_string, end_string)
+
     format_string = "%Y-%m-%d %H:%M:%S"
-    start_datetime, end_datetime = datetime.strptime("2017-01-01 00:00:00", format_string), \
-                                   datetime.strptime("2018-04-22 00:00:00", format_string)
+    format_string_2 = "%Y-%m-%d-%H"
+    start_datetime, end_datetime = datetime.strptime(start_string, format_string_2) + timedelta(hours=1), \
+                                   datetime.strptime(end_string, format_string_2)
     diff = end_datetime - start_datetime
     days, seconds = diff.days, diff.seconds
     delta_time = int(days * 24 + seconds // 3600)
@@ -98,7 +100,7 @@ if __name__ == '__main__':
     time_span = 24
     grid_edge_length = 7
     predict_span = 50
-    data_dir = "../data_ld/h5"
+    data_dir = "../data/h5_history/{}_{}".format(start_string, end_string)
     if not os.path.exists(data_dir):
         os.makedirs(data_dir)
     aq_count = 0

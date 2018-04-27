@@ -1,5 +1,6 @@
 import csv
 from datetime import datetime, timedelta
+import operator
 
 from utils import bj_raw_fetch, tools, ld_raw_fetch
 

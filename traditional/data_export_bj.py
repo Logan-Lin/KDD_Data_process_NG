@@ -50,14 +50,11 @@ def cal_angle(main, verse):
 def cal_affect_factor(main_id, verse_id, dt_string):
     main_coordinate, verse_coordinate = aq_location[main_id], aq_location[verse_id]
     distance = cal_distance(main_coordinate, verse_coordinate)
-    try:
-        meo_row = grid_dicts[get_nearest(main_id)][dt_string]
-        wind_direction = float(meo_row[3]) / 360 * 2 * math.pi
-        wind_speed = float(meo_row[4])
-        angle = abs(cal_angle(main_coordinate, verse_coordinate) - wind_direction)
-        return math.cos(angle * wind_speed) / distance
-    except KeyError:
-        return [None] * 6
+    meo_row = grid_dicts[get_nearest(main_id)][dt_string]
+    wind_direction = float(meo_row[3]) / 360 * 2 * math.pi
+    wind_speed = float(meo_row[4])
+    angle = abs(cal_angle(main_coordinate, verse_coordinate) - wind_direction)
+    return math.cos(angle * wind_speed) / distance
 
 
 aq_location, grid_location, aq_dicts, grid_dicts = bj_raw_fetch.load_all()
@@ -101,8 +98,8 @@ for aq_name in aq_location.keys():
     valid_count = 0
     aggregate = 0
 
-    start_datetime, end_datetime = datetime.strptime("2017-01-01 14:00:00", format_string), \
-                                   datetime.strptime("2018-03-27 05:00:00", format_string)
+    start_datetime, end_datetime = datetime.strptime("2018-04-01 00:00:00", format_string), \
+                                   datetime.strptime("2018-04-23 00:00:00", format_string)
     diff = end_datetime - start_datetime
     days, seconds = diff.days, diff.seconds
     delta_time = int(days * 24 + seconds // 3600)
@@ -117,7 +114,7 @@ for aq_name in aq_location.keys():
         try:
             row = list()
             dt_string = dt_object.strftime(format_string)
-            row += [int(ti.mktime(dt_object.timetuple()))] + [dt_object.weekday()] + \
+            row += [int(dt_object.timestamp())] + [dt_object.weekday()] + \
                    [[1, 0][dt_object.weekday() in range(5)]] + \
                    [[0, 1][dt_object.date in holiday_array]]
             row += (aq_dicts[aq_name][dt_string])

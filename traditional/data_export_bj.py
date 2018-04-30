@@ -57,10 +57,13 @@ def cal_affect_factor(main_id, verse_id, dt_string):
     return math.cos(angle * wind_speed) / distance
 
 
-aq_location, grid_location, aq_dicts, grid_dicts = bj_raw_fetch.load_all()
+start_string, end_string = "2018-04-26-22", "2018-04-27-22"
+aq_location, grid_location, aq_dicts_, grid_dicts = bj_raw_fetch.load_all(start_string, end_string)
+aq_dicts = bj_raw_fetch.load_filled_dicts(start_string, end_string)
 
 # Load holiday date list
 format_string = "%Y-%m-%d %H:%M:%S"
+format_string_2 = "%Y-%m-%d-%H"
 holiday_start_ends = [["2017-01-01", "2017-01-02"],
                       ["2017-01-27", "2017-02-02"],
                       ["2017-04-02", "2017-04-04"],
@@ -98,8 +101,8 @@ for aq_name in aq_location.keys():
     valid_count = 0
     aggregate = 0
 
-    start_datetime, end_datetime = datetime.strptime("2018-04-01 00:00:00", format_string), \
-                                   datetime.strptime("2018-04-23 00:00:00", format_string)
+    start_datetime, end_datetime = datetime.strptime(start_string, format_string_2), \
+                                   datetime.strptime(end_string, format_string_2)
     diff = end_datetime - start_datetime
     days, seconds = diff.days, diff.seconds
     delta_time = int(days * 24 + seconds // 3600)

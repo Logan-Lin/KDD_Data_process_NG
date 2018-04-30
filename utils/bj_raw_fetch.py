@@ -62,6 +62,38 @@ def load_aq_dicts(start_str="", end_str="", city="bj"):
     return aq_dicts
 
 
+def load_filled_dicts(start_str="", end_str=""):
+    aq_dicts = dict()
+    print("Loading aq data...")
+    for aq_name in aq_location.keys():
+        aq_dict = dict()
+        with open("../data_m/aq_filled/{}_{}/{}.csv".format(start_str, end_str, aq_name), "r") as aq_file:
+            reader = csv.reader(aq_file, delimiter=',')
+            for row in reader:
+                try:
+                    aq_dict[row[0]] = list(map(float_m, row[1:]))
+                except ValueError:
+                    pass
+        aq_dicts[aq_name] = aq_dict
+    return aq_dicts
+
+
+def load_aq_dicts_none(start_str="", end_str="", city="bj"):
+    aq_dicts = dict()
+    print("Loading aq data...")
+    for aq_name in aq_location.keys():
+        aq_dict = dict()
+        with open("../utils/data_{}_api_m/aq/{}_{}/{}.csv".format(city, start_str, end_str, aq_name), "r") as aq_file:
+            reader = csv.reader(aq_file, delimiter=',')
+            for row in reader:
+                try:
+                    aq_dict[row[0]] = list(map(float_m_none, row[1:7]))
+                except ValueError:
+                    pass
+        aq_dicts[aq_name] = aq_dict
+    return aq_dicts
+
+
 def load_aq_pm10_dicts():
     aq_dicts = dict()
     print("Loading aq data...")
@@ -105,11 +137,11 @@ def load_grid_dicts(start_str="", end_str="", city="bj"):
              widgets=['Grid load ', Bar('=', '[', ']'), ' ', Percentage()])
     for grid_name in grid_location.keys():
         grid_dict = dict()
-        with open("../utils/data_{}_api/meo/{}_{}/{}.csv".format(city, start_str, end_str, grid_name), "r") as grid_file:
+        with open("../utils/data_{}_api_m/meo/{}_{}/{}.csv".format(city, start_str, end_str, grid_name), "r") as grid_file:
             reader = csv.reader(grid_file, delimiter=',')
             for row in reader:
                 try:
-                    grid_dict[row[0]] = list(map(float_m, row[2:]))
+                    grid_dict[row[0]] = list(map(float_m, row[1:]))
                 except ValueError:
                     pass
         grid_dicts[grid_name] = grid_dict
@@ -140,8 +172,8 @@ def load_all(start_str, end_str):
     return aq_location, grid_location, load_aq_dicts(start_str, end_str), load_grid_dicts(start_str, end_str)
 
 
-def load_aq():
-    return aq_location, load_aq_dicts()
+def load_aq(start_str='', end_str=''):
+    return aq_location, load_aq_dicts(start_str, end_str)
 
 
 def load_all_aq():

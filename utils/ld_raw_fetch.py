@@ -76,6 +76,43 @@ def load_aq_dicts(start_str="", end_str="", city="ld"):
     return aq_dicts
 
 
+def load_filled_dicts(start_str="", end_str=""):
+    aq_dicts = dict()
+    print("Loading aq data...")
+    for aq_name in aq_location.keys():
+        aq_dict = dict()
+        with open("../data_ld_m/aq_filled/{}_{}/{}.csv".format(start_str, end_str, aq_name), "r") as aq_file:
+            reader = csv.reader(aq_file, delimiter=',')
+            for row in reader:
+                try:
+                    aq_dict[row[0]] = list(map(float_m, row[1:3]))
+                except ValueError:
+                    pass
+        aq_dicts[aq_name] = aq_dict
+    return aq_dicts
+
+
+def load_aq_dicts_none(start_str="", end_str="", city="ld"):
+    aq_dicts = dict()
+    print("Loading aq data...")
+    for aq_name in aq_location.keys():
+        loss_count = 0
+        valid_count = 0
+        aq_dict = dict()
+        with open("../utils/data_{}_api_m/aq/{}_{}/{}.csv".format(city, start_str, end_str, aq_name), "r") as aq_file:
+            reader = csv.reader(aq_file, delimiter=',')
+            for row in reader:
+                try:
+                    aq_dict[row[0]] = list(map(float_m_none, row[1:3]))
+                    valid_count += 1
+                except ValueError:
+                    loss_count += 1
+                    pass
+        # print(aq_name, " loss ", loss_count, ", loss ", 100 * (loss_count / (valid_count + loss_count)), sep='')
+        aq_dicts[aq_name] = aq_dict
+    return aq_dicts
+
+
 def load_aq_no_no2_dicts(start_str="", end_str="", city="ld"):
     aq_dicts = dict()
     print("Loading aq data...")
@@ -109,6 +146,27 @@ def load_aq_all_dicts():
             for row in reader:
                 try:
                     aq_dict[row[0]] = list(map(float_m_none, row[1:4]))
+                    valid_count += 1
+                except ValueError:
+                    loss_count += 1
+                    pass
+        # print(aq_name, " loss ", loss_count, ", loss ", 100 * (loss_count / (valid_count + loss_count)), sep='')
+        aq_dicts[aq_name] = aq_dict
+    return aq_dicts
+
+
+def load_aq_history_dicts():
+    aq_dicts = dict()
+    print("Loading aq data...")
+    for aq_name in aq_location.keys():
+        loss_count = 0
+        valid_count = 0
+        aq_dict = dict()
+        with open("../data_ld_m/aq/{}.csv".format(aq_name), "r") as aq_file:
+            reader = csv.reader(aq_file, delimiter=',')
+            for row in reader:
+                try:
+                    aq_dict[row[0]] = list(map(float_m, row[1:3]))
                     valid_count += 1
                 except ValueError:
                     loss_count += 1
@@ -194,11 +252,36 @@ def load_grid_dicts(start_str="", end_str="", city="ld"):
     print("Loading grid meo data...")
     for grid_name in grid_location.keys():
         grid_dict = dict()
-        with open("../utils/data_{}_api/meo/{}_{}/{}.csv".format(city, start_str, end_str, grid_name), "r") as grid_file:
+        with open("../utils/data_{}_api_m/meo/{}_{}/{}.csv".format(city, start_str, end_str, grid_name), "r") as grid_file:
             reader = csv.reader(grid_file, delimiter=',')
             for row in reader:
                 try:
-                    grid_dict[row[0]] = list(map(float_m, row[2:]))
+                    grid_dict[row[0]] = list(map(float_m, row[1:]))
+                except ValueError:
+                    pass
+        grid_dicts[grid_name] = grid_dict
+        loaded += 1
+        bar.update(loaded)
+
+    sleep(0.1)
+    return grid_dicts
+
+
+def load_grid_history_dicts():
+    grid_dicts = dict()
+    loaded = 0
+
+    bar = PB(initial_value=0, maxval=len(grid_location.keys()),
+             widgets=['Grid load ', Bar('=', '[', ']'), ' ', Percentage()])
+
+    print("Loading grid meo data...")
+    for grid_name in grid_location.keys():
+        grid_dict = dict()
+        with open("../data_ld/meo/{}.csv".format(grid_name), "r") as grid_file:
+            reader = csv.reader(grid_file, delimiter=',')
+            for row in reader:
+                try:
+                    grid_dict[row[0]] = list(map(float_m, row[1:]))
                 except ValueError:
                     pass
         grid_dicts[grid_name] = grid_dict
@@ -244,6 +327,10 @@ def test_data_loss():
 
 def load_all(start_str, end_str):
     return aq_location, grid_location, load_aq_no_no2_dicts(start_str, end_str), load_grid_dicts(start_str, end_str)
+
+
+def load_all_history():
+    return aq_location, grid_location, load_aq_history_dicts(), load_grid_history_dicts()
 
 
 def load_aq():

@@ -91,7 +91,7 @@ if __name__ == '__main__':
 
     format_string = "%Y-%m-%d %H:%M:%S"
     format_string_2 = "%Y-%m-%d-%H"
-    start_datetime, end_datetime = datetime.strptime(start_string, format_string_2) + timedelta(hours=1), \
+    start_datetime, end_datetime = datetime.strptime(start_string, format_string_2), \
                                    datetime.strptime(end_string, format_string_2)
     diff = end_datetime - start_datetime
     days, seconds = diff.days, diff.seconds
@@ -100,7 +100,7 @@ if __name__ == '__main__':
     time_span = 24
     grid_edge_length = 7
     predict_span = 50
-    data_dir = "../data/h5_history/{}_{}".format(start_string, end_string)
+    data_dir = "../data_ld/h5_test/{}_{}".format(start_string, end_string)
     if not os.path.exists(data_dir):
         os.makedirs(data_dir)
     aq_count = 0

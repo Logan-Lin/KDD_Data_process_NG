@@ -2,6 +2,8 @@ import copy
 import math
 import operator
 from datetime import datetime, timedelta
+from progressbar import ProgressBar as PB, Bar, Percentage
+from time import sleep
 
 import h5py
 import numpy as np
@@ -87,39 +89,38 @@ head_row = ["time", "weekday", "workday", "holiday"] + aq_row + \
 
 # Export data
 if __name__ == "__main__":
-    start_string, end_string = "2018-04-01-00", "2018-04-29-22"
-    aq_location, grid_location, aq_dicts_, grid_dicts = ld_raw_fetch.load_all(start_string, end_string)
-    aq_dicts = ld_raw_fetch.load_filled_dicts(start_string, end_string)
+    start_string, end_string = "2017-01-01-00", "2018-04-01-00"
+    start_datetime, end_datetime = datetime.strptime(start_string, format_string_2), \
+                                   datetime.strptime(end_string, format_string_2)
+    diff = end_datetime - start_datetime
+    days, seconds = diff.days, diff.seconds
+    delta_time = int(days * 24 + seconds // 3600)
 
-    h5_file = h5py.File("../data_ld/tradition_export/traditional_ld_{}_{}.h5".format(start_string, end_string), "w")
+    aq_location, grid_location, aq_dicts, grid_dicts = ld_raw_fetch.load_all_history()
+    # aq_dicts = ld_raw_fetch.load_filled_dicts(start_string, end_string)
+
+    h5_file = h5py.File("../data_ld/tradition_train/traditional_ld_{}_{}.h5".format(start_string, end_string), "w")
     print("\nFetching data to export...")
     for aq_name in aq_location.keys():
-        # export_file = open("../data/tradition_export/" + aq_name + ".csv", "w", newline='')
-        # writer = csv.writer(export_file, delimiter=',')
-        # writer.writerow(head_row)
-        valid_count = 0
         aggregate = 0
 
-        start_string, end_string = "2018-04-01-22", "2018-04-29-22"
-        start_datetime, end_datetime = datetime.strptime(start_string, format_string_2), \
-                                       datetime.strptime(end_string, format_string_2)
-        diff = end_datetime - start_datetime
-        days, seconds = diff.days, diff.seconds
-        delta_time = int(days * 24 + seconds // 3600)
+        sleep(0.1)
+        bar = PB(initial_value=0, maxval=delta_time + 1,
+                 widgets=[aq_name, Bar('=', '[', ']'), ' ', Percentage()])
 
-        last_valid_dt_object = None
         data_to_write = []
-        for dt_object_day in per_delta(start_datetime, end_datetime, timedelta(days=1)):
-            have_valid = False
-            data_matrix = []
+        for dt_object_day in per_delta(start_datetime, end_datetime, timedelta(hours=1)):
+            aggregate += 1
+            bar.update(aggregate)
 
+            data_matrix = []
+            have_valid = True
             for dt_object in per_delta(dt_object_day - timedelta(hours=23), dt_object_day, timedelta(hours=1)):
-                aggregate += 1
                 try:
                     row = list()
                     dt_string = dt_object.strftime(format_string)
 
-                    row += [dt_object.strftime(format_string)] +\
+                    row += [dt_object.timestamp()] +\
                            [dt_object.weekday()] + \
                            [[1, 0][dt_object.weekday() in range(5)]] + \
                            [[0, 1][dt_object.date in holiday_array]]
@@ -127,44 +128,39 @@ if __name__ == "__main__":
                     nearest_grid = get_nearest(aq_name)
                     row += (grid_dicts[nearest_grid][dt_string])
 
-                    other_aq = copy.copy(aq_location)
-                    del other_aq[aq_name]
-
-                    factor_dict = dict()
-                    for other_aq_id in other_aq.keys():
-                        factor = cal_affect_factor(other_aq_id, aq_name, dt_string)
-                        factor_dict[other_aq_id] = factor
-                    sorted_factor_dict = sorted(factor_dict.items(), key=operator.itemgetter(1), reverse=True)
-                    valid = False
-                    other_aq_row = [None] * 2
-                    for other_aq_id, factor in sorted_factor_dict:
-                        if factor < 0:
-                            valid = False
-                            break
-                        try:
-                            other_aq_row = aq_dicts[other_aq_id][dt_string]
-                            valid = True
-                        except KeyError:
-                            valid = False
-                        if valid:
-                            row += [factor] + other_aq_row
-                            break
-                    if not valid:
-                        raise KeyError("Data loss here")
+                    # other_aq = copy.copy(aq_location)
+                    # del other_aq[aq_name]
+                    #
+                    # factor_dict = dict()
+                    # for other_aq_id in other_aq.keys():
+                    #     factor = cal_affect_factor(other_aq_id, aq_name, dt_string)
+                    #     factor_dict[other_aq_id] = factor
+                    # sorted_factor_dict = sorted(factor_dict.items(), key=operator.itemgetter(1), reverse=True)
+                    # valid = False
+                    # other_aq_row = [None] * 2
+                    # for other_aq_id, factor in sorted_factor_dict:
+                    #     if factor < 0:
+                    #         valid = False
+                    #         break
+                    #     try:
+                    #         other_aq_row = aq_dicts[other_aq_id][dt_string]
+                    #         valid = True
+                    #     except KeyError:
+                    #         valid = False
+                    #     if valid:
+                    #         row += [factor] + other_aq_row
+                    #         break
+                    # if not valid:
+                    #     raise KeyError("Data loss here")
 
                     data_matrix.append(row)
-                    have_valid = True
-
                 except KeyError as e:
                     have_valid = False
                     break
             if have_valid:
-                last_valid_dt_object = dt_object_day
-                data_to_write = data_matrix
-        if last_valid_dt_object is not None:
-            print("{} last valid data - {}".format(aq_name, last_valid_dt_object.strftime(format_string_2)))
-            h5_file.create_dataset(aq_name, data=np.asarray(data_to_write))
-        else:
-            print("{} has no valid data".format(aq_name))
-    h5_file.flush()
+                data_to_write.append(data_matrix)
+        h5_file.create_dataset(aq_name, data=np.asarray(data_to_write))
+        print("{} finished".format(aq_name))
+        h5_file.flush()
+        sleep(0.1)
     h5_file.close()

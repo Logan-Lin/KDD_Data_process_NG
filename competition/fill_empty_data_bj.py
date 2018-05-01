@@ -38,8 +38,6 @@ def get_filled_data(original_dicts, predict_dicts, city):
     filled_dicts = copy(original_dicts)
 
     for aq_name in predict_dicts.keys():
-        if aq_name == "fangshan_aq":
-            print()
         filled_dict = filled_dicts[aq_name]
         predict_dict = predict_dicts[aq_name]
         for dt_string in filled_dict.keys():
@@ -65,7 +63,7 @@ def write_filled_dicts(filled_dicts, start_string, end_string, city):
 
 
 if __name__ == '__main__':
-    start_string, end_string = "2018-04-01-00", "2018-04-29-22"
+    start_string, end_string = "2018-04-29-20", "2018-04-30-22"
     # Proceed Beijing data
     bj_original_aq_dicts = bj_raw_fetch.load_aq_dicts_none(start_string, end_string)
     bj_aq_dicts = get_aq_dicts(predict_directory_dict["bj"], "bj")

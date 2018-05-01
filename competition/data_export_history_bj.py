@@ -98,14 +98,14 @@ def get_forecast_data(dt_object):
 
 
 if __name__ == '__main__':
-    start_string, end_string = "2018-04-01-00", "2018-04-29-22"
-    aq_location, grid_location, aq_dicts, grid_dicts = load_all(start_string, end_string)
-    # aq_dicts = load_filled_dicts(start_string, end_string)
+    start_string, end_string = "2018-04-29-20", "2018-04-30-22"
+    aq_location, grid_location, aq_dicts_, grid_dicts = load_all(start_string, end_string)
+    aq_dicts = load_filled_dicts(start_string, end_string)
     format_string = "%Y-%m-%d %H:%M:%S"
     format_string_2 = "%Y-%m-%d-%H"
     date_format_string = "%Y_%m_%d"
 
-    start_string, end_string = "2018-04-01-22", "2018-04-29-22"
+    start_string, end_string = "2018-04-29-22", "2018-04-30-22"
     start_datetime, end_datetime = datetime.strptime(start_string, format_string_2), \
                                    datetime.strptime(end_string, format_string_2)
     diff = end_datetime - start_datetime
@@ -121,7 +121,7 @@ if __name__ == '__main__':
         os.makedirs(data_dir)
     aq_count = 0
     for aq_name in aq_location.keys():
-        # if not aq_name == "yongdingmennei_aq":
+        # if not aq_name == "fangshan_aq":
         #     continue
 
         aggregate = 0

@@ -270,14 +270,14 @@ def is_invalid(data):
 
 
 if __name__ == '__main__':
-    start_string, end_string = "2018-04-01-00", "2018-04-29-22"
+    start_string, end_string = "2018-04-29-20", "2018-04-30-22"
 
-    # fetch_data("aq", "bj", start_string, end_string, True)
-    # fetch_data("meo", "bj", start_string, end_string, True, 600)
+    fetch_data("aq", "bj", start_string, end_string, True)
+    fetch_data("meo", "bj", start_string, end_string, True, 600)
     # fetch_data("aq", "ld", start_string, end_string, True)
     # fetch_data("meo", "ld", start_string, end_string, True, 1200)
 
     fill_api_data("bj", "aq", start_string, end_string)
-    fill_api_data("ld", "aq", start_string, end_string)
+    # fill_api_data("ld", "aq", start_string, end_string)
     fill_api_data_all("bj", "meo", start_string, end_string)
-    fill_api_data_all("ld", "meo", start_string, end_string)
+    # fill_api_data_all("ld", "meo", start_string, end_string)

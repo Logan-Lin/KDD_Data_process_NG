@@ -207,7 +207,7 @@ if __name__ == "__main__":
     parser.add_argument("-ee", "--exportend", type=str,
                         help="End datetime to export, in YYYY-MM-DD-hh format", default=None)
     parser.add_argument("-f", "--fill", type=str2bool,
-                        help="Use filled data or not", default=True)
+                        help="Use filled data or not, input true/false", default=True)
     argv = parser.parse_args()
 
     export_data(argv.city, argv.start, argv.end, argv.exportstart, argv.exportend, argv.fill)

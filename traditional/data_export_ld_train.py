@@ -89,15 +89,16 @@ head_row = ["time", "weekday", "workday", "holiday"] + aq_row + \
 
 # Export data
 if __name__ == "__main__":
-    start_string, end_string = "2017-01-01-00", "2018-04-01-00"
+    start_string, end_string = "2018-04-01-00", "2018-04-29-22"
     start_datetime, end_datetime = datetime.strptime(start_string, format_string_2), \
                                    datetime.strptime(end_string, format_string_2)
     diff = end_datetime - start_datetime
     days, seconds = diff.days, diff.seconds
     delta_time = int(days * 24 + seconds // 3600)
 
-    aq_location, grid_location, aq_dicts, grid_dicts = ld_raw_fetch.load_all_history()
+    # aq_location, grid_location, aq_dicts, grid_dicts = ld_raw_fetch.load_all_history()
     # aq_dicts = ld_raw_fetch.load_filled_dicts(start_string, end_string)
+    aq_location, grid_location, aq_dicts, grid_dicts = ld_raw_fetch.load_all(start_string, end_string)
 
     h5_file = h5py.File("../data_ld/tradition_train/traditional_ld_{}_{}.h5".format(start_string, end_string), "w")
     print("\nFetching data to export...")
@@ -115,15 +116,16 @@ if __name__ == "__main__":
 
             data_matrix = []
             have_valid = True
-            for dt_object in per_delta(dt_object_day - timedelta(hours=23), dt_object_day, timedelta(hours=1)):
+            for dt_object in per_delta(dt_object_day - timedelta(hours=73), dt_object_day, timedelta(hours=1)):
                 try:
                     row = list()
                     dt_string = dt_object.strftime(format_string)
 
-                    row += [dt_object.timestamp()] +\
-                           [dt_object.weekday()] + \
-                           [[1, 0][dt_object.weekday() in range(5)]] + \
-                           [[0, 1][dt_object.date in holiday_array]]
+                    row += [dt_object.timestamp()]
+                    # +\
+                    # [dt_object.weekday()] + \
+                    # [[1, 0][dt_object.weekday() in range(5)]] + \
+                    # [[0, 1][dt_object.date in holiday_array]]
                     row += (aq_dicts[aq_name][dt_string])
                     nearest_grid = get_nearest(aq_name)
                     row += (grid_dicts[nearest_grid][dt_string])

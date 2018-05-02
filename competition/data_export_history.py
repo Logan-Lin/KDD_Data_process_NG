@@ -1,8 +1,13 @@
+import sys
+sys.path.append("../")
+
 import os
 from datetime import datetime, timedelta
+from matplotlib import pyplot as plt
 
 import h5py
 import numpy as np
+import argparse
 
 from forecast import parse
 from utils import bj_raw_fetch, ld_raw_fetch
@@ -15,8 +20,8 @@ time_span = 24
 predict_span = 50
 grid_circ = 7
 
-forecast_directory_dict = {"bj": "../forecast/data/bj_{}.txt",
-                     "ld": "../forecast/data/ld_{}.txt"}
+forecast_directory_dict = {"ld": "../forecast/data/bj_{}.txt",
+                     "bj": "../forecast/data/ld_{}.txt"}
 export_directory_dict = {"bj": "../data/h5_history/{}_{}",
                     "ld": "../data_ld/h5_history/{}_{}"}
 forecast_directory = ""
@@ -137,6 +142,9 @@ def export_data(city, read_start_string, read_end_string, export_start_string=No
 
     if not os.path.exists(data_dir):
         os.makedirs(data_dir)
+
+    print("\nExporting to {}".format(data_dir))
+
     for aq_name in aq_location.keys():
         # if not aq_name == "fangshan_aq":
         #     continue
@@ -184,4 +192,13 @@ def export_data(city, read_start_string, read_end_string, export_start_string=No
 
 
 if __name__ == "__main__":
-    export_data("ld", "2018-04-30-22", "2018-05-01-22")
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-c", "--city", type=str,
+                        help="City, input 'bj' or 'ld' for Beijing and London", default="bj")
+    parser.add_argument("-s", "--start", type=str,
+                        help="Start datetime string, in YYYY-MM-DD-hh format", default="2018-04-30-22")
+    parser.add_argument("-e", "--end", type=str,
+                        help="End datetime string, in YYYY-MM-DD-hh format", default="2018-05-01-22")
+    argv = parser.parse_args()
+
+    export_data(argv.city, argv.start, argv.end)

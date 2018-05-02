@@ -70,5 +70,5 @@ def get_data(filename):
 
 
 if __name__ == "__main__":
-    data = get_data("bj_04_26_14.txt")
+    data = get_data("data/bj_04_30_22.txt")
     print()

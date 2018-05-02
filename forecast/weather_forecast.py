@@ -18,8 +18,8 @@ headers = {'Accept': '*/*',
            'Connection': 'keep-alive'}
 
 
-city_url = {"bj": "https://www.accuweather.com/zh/gb/london/ec4a-2/hourly-weather-forecast/328328?hour=%s",
-            "ld": "https://www.accuweather.com/zh/cn/beijing/101924/hourly-weather-forecast/101924?hour=%s"}
+city_url = {"ld": "https://www.accuweather.com/zh/gb/london/ec4a-2/hourly-weather-forecast/328328?hour=%s",
+            "bj": "https://www.accuweather.com/zh/cn/beijing/101924/hourly-weather-forecast/101924?hour=%s"}
 
 
 def get_data(hour, city='bj'):

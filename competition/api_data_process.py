@@ -1,3 +1,6 @@
+import sys
+sys.path.append("../")
+
 import csv
 import os
 import shutil
@@ -6,6 +9,7 @@ from datetime import datetime, timedelta
 from time import sleep, time
 from utils import bj_raw_fetch, ld_raw_fetch, tools
 import operator
+import argparse
 
 import requests
 
@@ -15,7 +19,7 @@ ld_aq_location = ld_raw_fetch.aq_location
 ld_grid_location = ld_raw_fetch.grid_location
 location_dict = {"ld": {"aq": ld_aq_location, "meo": ld_grid_location},
                  "bj": {"aq": bj_aq_location, "meo": bj_grid_location}}
-data_column_scope = {"ld": 3, "bj": 6}
+data_column_scope = {"aq": {"ld": 3, "bj": 6}, "meo": {"ld": 5, "bj": 5}}
 grid_column_scope = 5
 
 
@@ -30,7 +34,7 @@ def get_start_end(end_object):
 format_string = ["%Y-%m-%d %H:%M:%S", "%Y-%m-%d-%H"]
 
 
-def fetch_data(file_header, city, start_str, end_str, stream=False, timeout=30):
+def fetch_data(file_header, city, start_str, end_str, stream=False, timeout=30, use_backup=False):
     if file_header not in ["meo", "aq"]:
         print("File header must be 'meo' or 'aq'!")
         exit(1)
@@ -41,7 +45,14 @@ def fetch_data(file_header, city, start_str, end_str, stream=False, timeout=30):
         city += "_grid"
     url = "https://biendata.com/competition/{}/{}/{}/{}/2k0d1d8".format(type_str, city, start_str, end_str)
 
+    if use_backup:
+        # "http://kdd.caiyunapp.com/competition/2k0d1d8/bj/2018-03-01-00/2018-04-04-00/airquality"
+        # "http://kdd.caiyunapp.com/competition/2k0d1d8/bj_grid/2018-04-30-00/2018-05-02-00/meteorology"
+        url = "http://kdd.caiyunapp.com/competition/2k0d1d8/{}/{}/{}/{}".format(
+            city, start_string, end_string, type_str)
+
     valid = False
+    data = None
     while not valid:
         try:
             if stream:
@@ -105,11 +116,13 @@ def float_zero(value):
         return float(value)
 
 
-def fill_api_data(city, data_type, start_str, end_str):
+def fill_api_data(city, data_type, start_str, end_str, fill_range=3):
     directory = "data_{}_api/{}/{}_{}".format(city, data_type, start_str, end_str)
     location = location_dict[city][data_type]
     data_dicts = dict()
     errors = []
+
+    column_start = {"aq": 1, "meo": 2}[data_type]
 
     start_obj, end_obj = datetime.strptime(start_str, format_string[1]), \
                          datetime.strptime(end_str, format_string[1])
@@ -128,7 +141,12 @@ def fill_api_data(city, data_type, start_str, end_str):
         with open("{}/{}.csv".format(directory, location_name), "r") as csv_file:
             reader = csv.reader(csv_file, delimiter=',')
             for row in reader:
-                data_dict[row[0]] = list(map(float_m, row[1:data_column_scope[city] + 1]))
+                if data_type == "aq":
+                    data_dict[row[0]] = list(
+                        map(float_m, row[column_start:data_column_scope[data_type][city] + column_start]))
+                elif data_type == "meo":
+                    data_dict[row[0]] = list(
+                        map(float_zero, row[column_start:data_column_scope[data_type][city] + column_start]))
 
             # Fill timestamp loss with None
             for dt_obj in tools.per_delta(start_obj, end_obj, timedelta(hours=1)):
@@ -136,7 +154,7 @@ def fill_api_data(city, data_type, start_str, end_str):
                 try:
                     data_dict[dt_str]
                 except KeyError:
-                    data_dict[dt_str] = [None] * data_column_scope[city]
+                    data_dict[dt_str] = [None] * data_column_scope[data_type][city]
 
             # Fill data if possible
             dt_obj = start_obj
@@ -144,7 +162,7 @@ def fill_api_data(city, data_type, start_str, end_str):
                 dt_obj += timedelta(hours=1)
                 dt_str = dt_obj.strftime(format_string[0])
                 current_data = data_dict[dt_str]
-                for column in range(data_column_scope[city]):
+                for column in range(data_column_scope[data_type][city]):
                     try:
                         if current_data[column] is None:
                             # Found None value, begin counting the length of empty data
@@ -155,7 +173,7 @@ def fill_api_data(city, data_type, start_str, end_str):
                                     count += 1
                                 else:
                                     break
-                            if count > 3:
+                            if count > fill_range:
                                 raise KeyError("Too much data is lost.")
                             start_value = data_dict[(dt_obj - timedelta(hours=1)).
                                 strftime(format_string[0])][column]
@@ -179,87 +197,8 @@ def fill_api_data(city, data_type, start_str, end_str):
             for dt_str, data in sorted_data_matrix:
                 writer.writerow([dt_str] + data)
             csv_file.flush()
-        print("Finished processing {} {} {} csv, filled {}".format(
-            location_name, start_string, end_string, filled_count))
-
-
-def fill_api_data_all(city, data_type, start_str, end_str):
-    directory = "data_{}_api/{}/{}_{}".format(city, data_type, start_str, end_str)
-    location = location_dict[city][data_type]
-    data_dicts = dict()
-    errors = []
-
-    start_obj, end_obj = datetime.strptime(start_str, format_string[1]), \
-                         datetime.strptime(end_str, format_string[1])
-
-    modified_directory = "data_{}_api_m/{}/{}_{}".format(city, data_type, start_str, end_str)
-    if not os.path.exists(modified_directory):
-        os.makedirs(modified_directory)
-    else:
-        shutil.rmtree(modified_directory)
-        os.makedirs(modified_directory)
-
-    for location_name in location.keys():
-
-        filled_count = 0
-        empty_count = 0
-
-        data_dict = dict()
-        with open("{}/{}.csv".format(directory, location_name), "r") as csv_file:
-            reader = csv.reader(csv_file, delimiter=',')
-            for row in reader:
-                data_dict[row[0]] = list(map(float_zero, row[2:grid_column_scope + 2]))
-
-            # Fill timestamp loss with None
-            for dt_obj in tools.per_delta(start_obj, end_obj, timedelta(hours=1)):
-                dt_str = dt_obj.strftime(format_string[0])
-                try:
-                    data_dict[dt_str]
-                except KeyError:
-                    data_dict[dt_str] = [None] * grid_column_scope
-                    empty_count += 1
-
-            # Fill data if possible
-            dt_obj = start_obj
-            while dt_obj < end_obj:
-                dt_obj += timedelta(hours=1)
-                dt_str = dt_obj.strftime(format_string[0])
-                current_data = data_dict[dt_str]
-                for column in range(grid_column_scope):
-                    try:
-                        if current_data[column] is None:
-                            # Found None value, begin counting the length of empty data
-                            count = 1
-                            while True:
-                                if data_dict[(dt_obj + timedelta(hours=count)).
-                                        strftime(format_string[0])][column] is None:
-                                    count += 1
-                                else:
-                                    break
-                            start_value = data_dict[(dt_obj - timedelta(hours=1)).
-                                strftime(format_string[0])][column]
-                            if start_value is None:
-                                raise KeyError("Data is empty in the first row.")
-                            end_value = data_dict[(dt_obj + timedelta(hours=count)).
-                                strftime(format_string[0])][column]
-                            gradient = (end_value - start_value) / (count + 1)
-                            for i in range(count):
-                                data_dict[(dt_obj + timedelta(hours=i)).
-                                    strftime(format_string[0])][column] = start_value + (i + 1) * gradient
-                                filled_count += 1
-                    except KeyError as e:
-                        errors.append(e)
-                        continue
-        data_dicts[location_name] = data_dict
-
-        sorted_data_matrix = sorted(data_dict.items(), key=operator.itemgetter(0))
-        with open("{}/{}.csv".format(modified_directory, location_name), "w", newline='') as csv_file:
-            writer = csv.writer(csv_file, delimiter=',')
-            for dt_str, data in sorted_data_matrix:
-                writer.writerow([dt_str] + data)
-            csv_file.flush()
-        print("Finished processing {} {} {} csv, filled {}, empty row {}".format(
-            location_name, start_string, end_string, filled_count / grid_column_scope, empty_count))
+        # print("Finished processing {} {} {} csv, filled {}".format(
+        #     location_name, start_string, end_string, filled_count))
 
 
 def is_invalid(data):
@@ -270,14 +209,19 @@ def is_invalid(data):
 
 
 if __name__ == '__main__':
-    start_string, end_string = "2018-04-29-20", "2018-04-30-22"
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-c", "--city", type=str,
+                        help="City, input 'bj' or 'ld' for Beijing and London", default="bj")
+    parser.add_argument("-s", "--start", type=str,
+                        help="Start datetime string, in YYYY-MM-DD-hh format", default="2018-04-30-22")
+    parser.add_argument("-e", "--end", type=str,
+                        help="End datetime string, in YYYY-MM-DD-hh format", default="2018-05-01-22")
+    argv = parser.parse_args()
 
-    fetch_data("aq", "bj", start_string, end_string, True)
-    fetch_data("meo", "bj", start_string, end_string, True, 600)
-    # fetch_data("aq", "ld", start_string, end_string, True)
-    # fetch_data("meo", "ld", start_string, end_string, True, 1200)
+    start_string, end_string = argv.start, argv.end
 
-    fill_api_data("bj", "aq", start_string, end_string)
-    # fill_api_data("ld", "aq", start_string, end_string)
-    fill_api_data_all("bj", "meo", start_string, end_string)
-    # fill_api_data_all("ld", "meo", start_string, end_string)
+    fetch_data("aq", argv.city, start_string, end_string, stream=True, use_backup=False)
+    fetch_data("meo", argv.city, start_string, end_string, stream=True, timeout=600, use_backup=True)
+
+    fill_api_data(argv.city, "aq", start_string, end_string)
+    fill_api_data(argv.city, "meo", start_string, end_string, fill_range=100)

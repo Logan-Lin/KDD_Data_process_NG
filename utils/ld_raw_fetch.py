@@ -62,7 +62,7 @@ def load_aq_dicts(start_str="", end_str="", city="ld"):
         loss_count = 0
         valid_count = 0
         aq_dict = dict()
-        with open("../utils/data_{}_api_m/aq/{}_{}/{}.csv".format(city, start_str, end_str, aq_name), "r") as aq_file:
+        with open("../competition/data_{}_api_m/aq/{}_{}/{}.csv".format(city, start_str, end_str, aq_name), "r") as aq_file:
             reader = csv.reader(aq_file, delimiter=',')
             for row in reader:
                 try:
@@ -99,7 +99,7 @@ def load_aq_dicts_none(start_str="", end_str="", city="ld"):
         loss_count = 0
         valid_count = 0
         aq_dict = dict()
-        with open("../utils/data_{}_api_m/aq/{}_{}/{}.csv".format(city, start_str, end_str, aq_name), "r") as aq_file:
+        with open("../competition/data_{}_api_m/aq/{}_{}/{}.csv".format(city, start_str, end_str, aq_name), "r") as aq_file:
             reader = csv.reader(aq_file, delimiter=',')
             for row in reader:
                 try:
@@ -120,7 +120,7 @@ def load_aq_no_no2_dicts(start_str="", end_str="", city="ld"):
         loss_count = 0
         valid_count = 0
         aq_dict = dict()
-        with open("../utils/data_{}_api_m/aq/{}_{}/{}.csv".format(city, start_str, end_str, aq_name), "r") as aq_file:
+        with open("../competition/data_{}_api_m/aq/{}_{}/{}.csv".format(city, start_str, end_str, aq_name), "r") as aq_file:
             reader = csv.reader(aq_file, delimiter=',')
             for row in reader:
                 try:
@@ -252,7 +252,7 @@ def load_grid_dicts(start_str="", end_str="", city="ld"):
     print("Loading grid meo data...")
     for grid_name in grid_location.keys():
         grid_dict = dict()
-        with open("../utils/data_{}_api_m/meo/{}_{}/{}.csv".format(city, start_str, end_str, grid_name), "r") as grid_file:
+        with open("../competition/data_{}_api_m/meo/{}_{}/{}.csv".format(city, start_str, end_str, grid_name), "r") as grid_file:
             reader = csv.reader(grid_file, delimiter=',')
             for row in reader:
                 try:

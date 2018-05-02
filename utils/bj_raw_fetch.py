@@ -1,3 +1,6 @@
+import sys
+sys.path.append("../")
+
 import csv
 from time import sleep
 
@@ -48,7 +51,7 @@ with open("../data/beijing_grid_location.csv") as read_file:
 # Load aq station info dict
 def load_aq_dicts(start_str="", end_str="", city="bj"):
     aq_dicts = dict()
-    print("Loading aq data...")
+    # print("Loading aq data...")
     for aq_name in aq_location.keys():
         aq_dict = dict()
         with open("../utils/data_{}_api_m/aq/{}_{}/{}.csv".format(city, start_str, end_str, aq_name), "r") as aq_file:
@@ -64,7 +67,7 @@ def load_aq_dicts(start_str="", end_str="", city="bj"):
 
 def load_filled_dicts(start_str="", end_str=""):
     aq_dicts = dict()
-    print("Loading aq data...")
+    # print("Loading aq data...")
     for aq_name in aq_location.keys():
         aq_dict = dict()
         with open("../data_m/aq_filled/{}_{}/{}.csv".format(start_str, end_str, aq_name), "r") as aq_file:
@@ -80,10 +83,10 @@ def load_filled_dicts(start_str="", end_str=""):
 
 def load_aq_dicts_none(start_str="", end_str="", city="bj"):
     aq_dicts = dict()
-    print("Loading aq data...")
+    # print("Loading aq data...")
     for aq_name in aq_location.keys():
         aq_dict = dict()
-        with open("../utils/data_{}_api_m/aq/{}_{}/{}.csv".format(city, start_str, end_str, aq_name), "r") as aq_file:
+        with open("../competition/data_{}_api_m/aq/{}_{}/{}.csv".format(city, start_str, end_str, aq_name), "r") as aq_file:
             reader = csv.reader(aq_file, delimiter=',')
             for row in reader:
                 try:
@@ -96,7 +99,7 @@ def load_aq_dicts_none(start_str="", end_str="", city="bj"):
 
 def load_aq_pm10_dicts():
     aq_dicts = dict()
-    print("Loading aq data...")
+    # print("Loading aq data...")
     for aq_name in aq_location.keys():
         aq_dict = dict()
         with open("../data_m/aq/" + aq_name + ".csv") as aq_file:
@@ -113,7 +116,7 @@ def load_aq_pm10_dicts():
 
 def load_aq_original():
     aq_dicts = dict()
-    print("Loading aq data...")
+    # print("Loading aq data...")
     for aq_name in aq_location.keys():
         aq_dict = dict()
         with open("../data/aq/" + aq_name + ".csv") as aq_file:
@@ -131,13 +134,13 @@ def load_aq_original():
 def load_grid_dicts(start_str="", end_str="", city="bj"):
     grid_dicts = dict()
     loaded = 0
-    print("Loading grid meo data...")
+    # print("Loading grid meo data...")
 
     bar = PB(initial_value=0, maxval=len(grid_location.keys()),
              widgets=['Grid load ', Bar('=', '[', ']'), ' ', Percentage()])
     for grid_name in grid_location.keys():
         grid_dict = dict()
-        with open("../utils/data_{}_api_m/meo/{}_{}/{}.csv".format(city, start_str, end_str, grid_name), "r") as grid_file:
+        with open("../competition/data_{}_api_m/meo/{}_{}/{}.csv".format(city, start_str, end_str, grid_name), "r") as grid_file:
             reader = csv.reader(grid_file, delimiter=',')
             for row in reader:
                 try:
@@ -154,7 +157,7 @@ def load_grid_dicts(start_str="", end_str="", city="bj"):
 
 def load_aq_all_dicts():
     aq_dicts = dict()
-    print("Loading aq data...")
+    # print("Loading aq data...")
     for aq_name in aq_location.keys():
         aq_dict = dict()
         with open("../data_m/aq/" + aq_name + ".csv") as aq_file:

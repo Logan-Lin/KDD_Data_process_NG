@@ -87,25 +87,16 @@ head_row = ["time", "weekday", "workday", "holiday"] + aq_row + \
 
 # Export data
 if __name__ == "__main__":
-    start_string, end_string = "2018-04-01-00", "2018-04-29-22"
+    start_string, end_string = "2018-04-30-22", "2018-05-01-22"
     aq_location, grid_location, aq_dicts_, grid_dicts = ld_raw_fetch.load_all(start_string, end_string)
     aq_dicts = ld_raw_fetch.load_filled_dicts(start_string, end_string)
 
     h5_file = h5py.File("../data_ld/tradition_export/traditional_ld_{}_{}.h5".format(start_string, end_string), "w")
     print("\nFetching data to export...")
     for aq_name in aq_location.keys():
-        # export_file = open("../data/tradition_export/" + aq_name + ".csv", "w", newline='')
-        # writer = csv.writer(export_file, delimiter=',')
-        # writer.writerow(head_row)
-        valid_count = 0
-        aggregate = 0
-
-        start_string, end_string = "2018-04-01-22", "2018-04-29-22"
+        # start_string, end_string = "2018-04-01-22", "2018-04-29-22"
         start_datetime, end_datetime = datetime.strptime(start_string, format_string_2), \
                                        datetime.strptime(end_string, format_string_2)
-        diff = end_datetime - start_datetime
-        days, seconds = diff.days, diff.seconds
-        delta_time = int(days * 24 + seconds // 3600)
 
         last_valid_dt_object = None
         data_to_write = []
@@ -114,43 +105,43 @@ if __name__ == "__main__":
             data_matrix = []
 
             for dt_object in per_delta(dt_object_day - timedelta(hours=23), dt_object_day, timedelta(hours=1)):
-                aggregate += 1
                 try:
                     row = list()
                     dt_string = dt_object.strftime(format_string)
 
-                    row += [dt_object.strftime(format_string)] +\
-                           [dt_object.weekday()] + \
-                           [[1, 0][dt_object.weekday() in range(5)]] + \
-                           [[0, 1][dt_object.date in holiday_array]]
+                    row += [dt_object.timestamp()] \
+                           # +\
+                           # [dt_object.weekday()] + \
+                           # [[1, 0][dt_object.weekday() in range(5)]] + \
+                           # [[0, 1][dt_object.date in holiday_array]]
                     row += (aq_dicts[aq_name][dt_string])
                     nearest_grid = get_nearest(aq_name)
                     row += (grid_dicts[nearest_grid][dt_string])
 
-                    other_aq = copy.copy(aq_location)
-                    del other_aq[aq_name]
-
-                    factor_dict = dict()
-                    for other_aq_id in other_aq.keys():
-                        factor = cal_affect_factor(other_aq_id, aq_name, dt_string)
-                        factor_dict[other_aq_id] = factor
-                    sorted_factor_dict = sorted(factor_dict.items(), key=operator.itemgetter(1), reverse=True)
-                    valid = False
-                    other_aq_row = [None] * 2
-                    for other_aq_id, factor in sorted_factor_dict:
-                        if factor < 0:
-                            valid = False
-                            break
-                        try:
-                            other_aq_row = aq_dicts[other_aq_id][dt_string]
-                            valid = True
-                        except KeyError:
-                            valid = False
-                        if valid:
-                            row += [factor] + other_aq_row
-                            break
-                    if not valid:
-                        raise KeyError("Data loss here")
+                    # other_aq = copy.copy(aq_location)
+                    # del other_aq[aq_name]
+                    #
+                    # factor_dict = dict()
+                    # for other_aq_id in other_aq.keys():
+                    #     factor = cal_affect_factor(other_aq_id, aq_name, dt_string)
+                    #     factor_dict[other_aq_id] = factor
+                    # sorted_factor_dict = sorted(factor_dict.items(), key=operator.itemgetter(1), reverse=True)
+                    # valid = False
+                    # other_aq_row = [None] * 2
+                    # for other_aq_id, factor in sorted_factor_dict:
+                    #     if factor < 0:
+                    #         valid = False
+                    #         break
+                    #     try:
+                    #         other_aq_row = aq_dicts[other_aq_id][dt_string]
+                    #         valid = True
+                    #     except KeyError:
+                    #         valid = False
+                    #     if valid:
+                    #         row += [factor] + other_aq_row
+                    #         break
+                    # if not valid:
+                    #     raise KeyError("Data loss here")
 
                     data_matrix.append(row)
                     have_valid = True

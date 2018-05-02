@@ -5,7 +5,7 @@ import h5py
 import numpy as np
 
 from forecast import parse
-from utils.bj_raw_fetch import *
+from utils import bj_raw_fetch, ld_raw_fetch
 from utils.tools import *
 
 
@@ -14,6 +14,15 @@ format_string_2 = "%Y-%m-%d-%H"
 time_span = 24
 predict_span = 50
 grid_circ = 7
+
+forecast_directory_dict = {"bj": "../forecast/data/bj_{}.txt",
+                     "ld": "../forecast/data/ld_{}.txt"}
+export_directory_dict = {"bj": "../data/h5_history/{}_{}",
+                    "ld": "../data_ld/h5_history/{}_{}"}
+forecast_directory = ""
+export_directory = ""
+
+aq_dicts, grid_dicts, grid_location, aq_location = dict(), dict(), dict(), dict()
 
 
 # Get the nearest grid id and coordination close to the given coordinate
@@ -40,7 +49,7 @@ def coordinate_to_id(grid_coordinate):
             return list(grid_location.keys())[index]
 
 
-def check_valid(aq_name, start_object, aq_dicts, grid_dicts, near_grids):
+def check_valid(aq_name, start_object, near_grids):
     try:
         aq_dict = aq_dicts[aq_name]
         aq_matrix = []
@@ -72,7 +81,7 @@ def check_valid(aq_name, start_object, aq_dicts, grid_dicts, near_grids):
             for i in range(1, predict_span + 1):
                 fake_forecast_data.append(
                     get_fake_forecast_data(
-                        aq_name, (start_object + timedelta(hours=i)).strftime(format_string), grid_dicts))
+                        aq_name, (start_object + timedelta(hours=i)).strftime(format_string)))
     except KeyError:
         return None, None, None, None
     return aq_matrix, near_grid_data, fake_forecast_data, predict_data
@@ -93,7 +102,7 @@ def get_grids(aq_name, n):
     return grid_coor_matrix, np.asarray(grid_coor_nparray)
 
 
-def get_fake_forecast_data(aq_name, dt_string, grid_dicts):
+def get_fake_forecast_data(aq_name, dt_string):
     grid_id, grid_coor = get_nearest(aq_location[aq_name])
     data_row = grid_dicts[grid_id][dt_string]
     # Temperature, humidity, wind direction, wind speed
@@ -101,14 +110,21 @@ def get_fake_forecast_data(aq_name, dt_string, grid_dicts):
 
 
 def get_forecast_data(dt_object):
-    file_directory = "../forecast/data/bj_{}.txt".format((dt_object + timedelta(hours=8)).strftime("%m_%d_%H"))
+    file_directory = forecast_directory.format((dt_object + timedelta(hours=8)).strftime("%m_%d_%H"))
     return parse.get_data(file_directory)
 
 
-def export_data(read_start_string, read_end_string, export_start_string=None, export_end_string=None):
+def export_data(city, read_start_string, read_end_string, export_start_string=None, export_end_string=None):
     start_string, end_string = read_start_string, read_end_string
-    aq_location, grid_location, aq_dicts_, grid_dicts = load_all(start_string, end_string)
-    aq_dicts = load_filled_dicts(start_string, end_string)
+    global aq_location, grid_location, grid_dicts, aq_dicts, forecast_directory, export_directory
+    forecast_directory = forecast_directory_dict[city]
+    export_directory = export_directory_dict[city]
+    if city == "bj":
+        aq_location, grid_location, aq_dicts_, grid_dicts = bj_raw_fetch.load_all(start_string, end_string)
+        aq_dicts = bj_raw_fetch.load_filled_dicts(start_string, end_string)
+    elif city == "ld":
+        aq_location, grid_location, aq_dicts_, grid_dicts = ld_raw_fetch.load_all(start_string, end_string)
+        aq_dicts = ld_raw_fetch.load_filled_dicts(start_string, end_string)
 
     if export_start_string is None:
         start_string, end_string = read_start_string, read_end_string
@@ -117,16 +133,13 @@ def export_data(read_start_string, read_end_string, export_start_string=None, ex
     start_datetime, end_datetime = datetime.strptime(start_string, format_string_2), \
                                    datetime.strptime(end_string, format_string_2)
 
-    data_dir = "../data/h5_history/{}_{}".format(start_string, end_string)
+    data_dir = export_directory.format(start_string, end_string)
 
     if not os.path.exists(data_dir):
         os.makedirs(data_dir)
-    aq_count = 0
     for aq_name in aq_location.keys():
         # if not aq_name == "fangshan_aq":
         #     continue
-
-        aggregate = 0
 
         valid_count = 0
         near_grids, grid_coor_array = get_grids(aq_name, grid_circ)
@@ -140,26 +153,21 @@ def export_data(read_start_string, read_end_string, export_start_string=None, ex
 
         # Exporting data from start to end
         last_valid_dt_object = None
-        for dt_object_day in per_delta(start_datetime, end_datetime, timedelta(hours=24)):
-            for dt_object in per_delta(dt_object_day, dt_object_day + timedelta(hours=0), timedelta(hours=1)):
-                aggregate += 1
-                dt_string = dt_object.strftime(format_string)
+        grid_matrix, history_matrix, dt_int_array, forecast_matrix = tuple([1] * 4)
+        for dt_object in per_delta(start_datetime, end_datetime, timedelta(hours=24)):
+            # Fetch history and prediction data, check data validation in the same time
+            aq_matrix, near_grid_data, forecast_data, predict = check_valid(aq_name, dt_object, near_grids)
+            if aq_matrix is None:
+                continue
 
-                # Fetch history and prediction data, check data validation in the same time
-                aq_matrix, near_grid_data, fake_forecast_data, predict = check_valid(
-                    aq_name, dt_object, aq_dicts, grid_dicts, near_grids)
-                if aq_matrix is None:
-                    continue
+            # Append this hour's data into per-day data
+            grid_matrix = [near_grid_data]
+            history_matrix = [aq_matrix]
+            dt_int_array = [dt_object.timestamp()]
+            forecast_matrix = [forecast_data]
+            valid_count += 1
 
-                # Append this hour's data into per-day data
-                grid_matrix = [near_grid_data]
-                history_matrix = [aq_matrix]
-                dt_int_array = [dt_object.timestamp()]
-                fake_forecast_matrix = [fake_forecast_data]
-                # predict_matrix.append(predict)
-                valid_count += 1
-
-                last_valid_dt_object = dt_object
+            last_valid_dt_object = dt_object
 
         if last_valid_dt_object is not None:
             h5_file = h5py.File("{}/{}.h5".format(data_dir, aq_name), "w")
@@ -167,7 +175,7 @@ def export_data(read_start_string, read_end_string, export_start_string=None, ex
             h5_file.create_dataset("history", data=np.asarray(history_matrix))
             h5_file.create_dataset("timestep", data=np.asarray(dt_int_array))
             # h5_file.create_dataset("predict", data=np.asarray(predict_matrix))
-            h5_file.create_dataset("weather_forecast", data=np.asarray(fake_forecast_matrix))
+            h5_file.create_dataset("weather_forecast", data=np.asarray(forecast_matrix))
             h5_file.flush()
             h5_file.close()
             print("{} - Have data, last valid {}".format(aq_name, last_valid_dt_object.strftime(format_string_2)))
@@ -176,4 +184,4 @@ def export_data(read_start_string, read_end_string, export_start_string=None, ex
 
 
 if __name__ == "__main__":
-    export_data("2018-04-30-22", "2018-05-01-22")
+    export_data("ld", "2018-04-30-22", "2018-05-01-22")

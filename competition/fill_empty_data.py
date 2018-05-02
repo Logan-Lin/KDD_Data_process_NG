@@ -62,7 +62,7 @@ def write_filled_dicts(filled_dicts, start_string, end_string, city):
         print("Filled {}".format(aq_name))
 
 
-def fill_data(city, start_str, end_str):
+def fill_data(city, start_string, end_string):
     if city == "bj":
         bj_original_aq_dicts = bj_raw_fetch.load_aq_dicts_none(start_string, end_string)
         bj_aq_dicts = get_aq_dicts(predict_directory_dict["bj"], "bj")
@@ -76,6 +76,4 @@ def fill_data(city, start_str, end_str):
 
 
 if __name__ == '__main__':
-    start_string, end_string = "2018-04-30-22", "2018-05-01-22"
-    # Proceed Beijing data
-    fill_data("ld", start_string, end_string)
+    fill_data("ld", "2018-04-30-22", "2018-05-01-22")

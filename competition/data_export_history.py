@@ -3,7 +3,6 @@ sys.path.append("../")
 
 import os
 from datetime import datetime, timedelta
-from matplotlib import pyplot as plt
 
 import h5py
 import numpy as np

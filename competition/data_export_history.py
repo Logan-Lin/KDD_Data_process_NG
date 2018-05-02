@@ -10,7 +10,8 @@ import argparse
 
 from forecast import parse
 from utils import bj_raw_fetch, ld_raw_fetch
-from utils.tools import *
+from utils.tools import get_one_hot, per_delta, str2bool, angle_to_int
+import math
 
 
 format_string = "%Y-%m-%d %H:%M:%S"
@@ -148,7 +149,7 @@ def export_data(city, read_start_string, read_end_string, export_start_string=No
     print("\nExporting to {}".format(data_dir))
 
     for aq_name in aq_location.keys():
-        # if not aq_name == "fangshan_aq":
+        # if not aq_name in ["KF1"]:
         #     continue
 
         valid_count = 0
@@ -205,7 +206,7 @@ if __name__ == "__main__":
                         help="Start datetime to export, in YYYY-MM-DD-hh format", default=None)
     parser.add_argument("-ee", "--exportend", type=str,
                         help="End datetime to export, in YYYY-MM-DD-hh format", default=None)
-    parser.add_argument("-f", "--fill", type=bool,
+    parser.add_argument("-f", "--fill", type=str2bool,
                         help="Use filled data or not", default=True)
     argv = parser.parse_args()
 

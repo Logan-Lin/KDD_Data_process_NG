@@ -93,7 +93,10 @@ def fetch_data(file_header, city, start_str, end_str, stream=False, timeout=30, 
         row = rows[i].rstrip().split(",")[1:]
         with open(data_dir + "/" + row[0] + ".csv", "a", newline='') as csv_file:
             writer = csv.writer(csv_file, delimiter=',')
-            writer.writerow(row[1:])
+            if use_backup:
+                writer.writerow(row[1:6] + [row[7], row[6]])
+            else:
+                writer.writerow(row[1:])
             csv_file.flush()
     print("Finished writing", real_city, file_header, start_str, end_string, "data")
 
@@ -216,12 +219,17 @@ if __name__ == '__main__':
                         help="Start datetime string, in YYYY-MM-DD-hh format", default="2018-04-30-22")
     parser.add_argument("-e", "--end", type=str,
                         help="End datetime string, in YYYY-MM-DD-hh format", default="2018-05-01-22")
+    parser.add_argument("-r", "--range", type=int,
+                        help="The maximum rows of empty data that can be filled using linear difference",
+                        default=3)
+    parser.add_argument("-b", "--backup", type=bool,
+                        help="Use meo backup api or not", default=False)
     argv = parser.parse_args()
 
     start_string, end_string = argv.start, argv.end
 
     fetch_data("aq", argv.city, start_string, end_string, stream=True, use_backup=False)
-    fetch_data("meo", argv.city, start_string, end_string, stream=True, timeout=600, use_backup=True)
+    fetch_data("meo", argv.city, start_string, end_string, stream=True, timeout=600, use_backup=argv.backup)
 
-    fill_api_data(argv.city, "aq", start_string, end_string)
-    fill_api_data(argv.city, "meo", start_string, end_string, fill_range=100)
+    fill_api_data(argv.city, "aq", start_string, end_string, fill_range=argv.range)
+    fill_api_data(argv.city, "meo", start_string, end_string, fill_range=argv.range)

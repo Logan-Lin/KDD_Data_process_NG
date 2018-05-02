@@ -1,4 +1,5 @@
 import math
+import argparse
 
 
 def per_delta(start, end, delta):
@@ -38,6 +39,15 @@ def get_one_hot(value, aggregate):
     one_hot_array = [0] * aggregate
     one_hot_array[value] = 1
     return one_hot_array
+
+
+def str2bool(v):
+    if v.lower() in ('yes', 'true', 't', 'y', '1'):
+        return True
+    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+        return False
+    else:
+        raise argparse.ArgumentTypeError('Boolean value expected.')
 
 
 if __name__ == '__main__':

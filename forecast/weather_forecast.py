@@ -138,7 +138,7 @@ def fetch(city='bj'):
     now = datetime.now()
     logger.info('start fetching weather data at %s' % (datetime.strftime(now, '%Y-%m-%d %H:%M:%S')))
     insert_data_into_file(get_batch_data(now, city),
-                          filename="{}_{}.txt".format(city, datetime.strftime(now, '%m_%d_%H')))
+                          filename="data/{}_{}.txt".format(city, datetime.strftime(now, '%m_%d_%H')))
 
 
 if __name__ == '__main__':

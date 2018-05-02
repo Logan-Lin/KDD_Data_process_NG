@@ -4,8 +4,6 @@ sys.path.append("../")
 import csv
 from time import sleep
 
-from progressbar import ProgressBar as PB, Bar, Percentage
-
 
 def float_m(value):
     if value is None or len(value) == 0:
@@ -135,9 +133,6 @@ def load_grid_dicts(start_str="", end_str="", city="bj"):
     grid_dicts = dict()
     loaded = 0
     # print("Loading grid meo data...")
-
-    bar = PB(initial_value=0, maxval=len(grid_location.keys()),
-             widgets=['Grid load ', Bar('=', '[', ']'), ' ', Percentage()])
     for grid_name in grid_location.keys():
         grid_dict = dict()
         with open("../competition/data_{}_api_m/meo/{}_{}/{}.csv".format(city, start_str, end_str, grid_name), "r") as grid_file:
@@ -149,8 +144,6 @@ def load_grid_dicts(start_str="", end_str="", city="bj"):
                     pass
         grid_dicts[grid_name] = grid_dict
         loaded += 1
-        bar.update(loaded)
-
     sleep(0.1)
     return grid_dicts
 

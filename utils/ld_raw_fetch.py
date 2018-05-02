@@ -1,5 +1,4 @@
 import csv
-from progressbar import ProgressBar as PB, Bar, Percentage
 from time import sleep
 import operator
 import math
@@ -246,9 +245,6 @@ def load_grid_dicts(start_str="", end_str="", city="ld"):
     grid_dicts = dict()
     loaded = 0
 
-    bar = PB(initial_value=0, maxval=len(grid_location.keys()),
-             widgets=['Grid load ', Bar('=', '[', ']'), ' ', Percentage()])
-
     print("Loading grid meo data...")
     for grid_name in grid_location.keys():
         grid_dict = dict()
@@ -261,8 +257,6 @@ def load_grid_dicts(start_str="", end_str="", city="ld"):
                     pass
         grid_dicts[grid_name] = grid_dict
         loaded += 1
-        bar.update(loaded)
-
     sleep(0.1)
     return grid_dicts
 
@@ -270,9 +264,6 @@ def load_grid_dicts(start_str="", end_str="", city="ld"):
 def load_grid_history_dicts():
     grid_dicts = dict()
     loaded = 0
-
-    bar = PB(initial_value=0, maxval=len(grid_location.keys()),
-             widgets=['Grid load ', Bar('=', '[', ']'), ' ', Percentage()])
 
     print("Loading grid meo data...")
     for grid_name in grid_location.keys():

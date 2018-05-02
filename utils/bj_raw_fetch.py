@@ -52,7 +52,7 @@ def load_aq_dicts(start_str="", end_str="", city="bj"):
     # print("Loading aq data...")
     for aq_name in aq_location.keys():
         aq_dict = dict()
-        with open("../utils/data_{}_api_m/aq/{}_{}/{}.csv".format(city, start_str, end_str, aq_name), "r") as aq_file:
+        with open("../competition/data_{}_api_m/aq/{}_{}/{}.csv".format(city, start_str, end_str, aq_name), "r") as aq_file:
             reader = csv.reader(aq_file, delimiter=',')
             for row in reader:
                 try:

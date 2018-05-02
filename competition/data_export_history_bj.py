@@ -9,6 +9,13 @@ from utils.bj_raw_fetch import *
 from utils.tools import *
 
 
+format_string = "%Y-%m-%d %H:%M:%S"
+format_string_2 = "%Y-%m-%d-%H"
+time_span = 24
+predict_span = 50
+grid_circ = 7
+
+
 # Get the nearest grid id and coordination close to the given coordinate
 def get_nearest(coor):
     min_distance = 999999
@@ -33,7 +40,7 @@ def coordinate_to_id(grid_coordinate):
             return list(grid_location.keys())[index]
 
 
-def check_valid(aq_name, start_object, span):
+def check_valid(aq_name, start_object, aq_dicts, grid_dicts, near_grids):
     try:
         aq_dict = aq_dicts[aq_name]
         aq_matrix = []
@@ -46,7 +53,7 @@ def check_valid(aq_name, start_object, span):
         except FileNotFoundError:
             need_fake = True
         predict_data = []
-        for i in range(span - 1, -1, -1):
+        for i in range(time_span - 1, -1, -1):
             valid_dt_string = (start_object - timedelta(hours=i)).strftime(format_string)
             aq_matrix.append(aq_dict[valid_dt_string])
 
@@ -64,7 +71,8 @@ def check_valid(aq_name, start_object, span):
         if need_fake:
             for i in range(1, predict_span + 1):
                 fake_forecast_data.append(
-                    get_fake_forecast_data(aq_name, (start_object + timedelta(hours=i)).strftime(format_string)))
+                    get_fake_forecast_data(
+                        aq_name, (start_object + timedelta(hours=i)).strftime(format_string), grid_dicts))
     except KeyError:
         return None, None, None, None
     return aq_matrix, near_grid_data, fake_forecast_data, predict_data
@@ -85,7 +93,7 @@ def get_grids(aq_name, n):
     return grid_coor_matrix, np.asarray(grid_coor_nparray)
 
 
-def get_fake_forecast_data(aq_name, dt_string):
+def get_fake_forecast_data(aq_name, dt_string, grid_dicts):
     grid_id, grid_coor = get_nearest(aq_location[aq_name])
     data_row = grid_dicts[grid_id][dt_string]
     # Temperature, humidity, wind direction, wind speed
@@ -97,24 +105,18 @@ def get_forecast_data(dt_object):
     return parse.get_data(file_directory)
 
 
-if __name__ == '__main__':
-    start_string, end_string = "2018-04-29-20", "2018-04-30-22"
+def export_data(read_start_string, read_end_string, export_start_string=None, export_end_string=None):
+    start_string, end_string = read_start_string, read_end_string
     aq_location, grid_location, aq_dicts_, grid_dicts = load_all(start_string, end_string)
     aq_dicts = load_filled_dicts(start_string, end_string)
-    format_string = "%Y-%m-%d %H:%M:%S"
-    format_string_2 = "%Y-%m-%d-%H"
-    date_format_string = "%Y_%m_%d"
 
-    start_string, end_string = "2018-04-29-22", "2018-04-30-22"
+    if export_start_string is None:
+        start_string, end_string = read_start_string, read_end_string
+    else:
+        start_string, end_string = export_start_string, export_end_string
     start_datetime, end_datetime = datetime.strptime(start_string, format_string_2), \
                                    datetime.strptime(end_string, format_string_2)
-    diff = end_datetime - start_datetime
-    days, seconds = diff.days, diff.seconds
-    delta_time = int(days)
-    time_span = 24
-    predict_span = 50
 
-    grid_circ = 7
     data_dir = "../data/h5_history/{}_{}".format(start_string, end_string)
 
     if not os.path.exists(data_dir):
@@ -144,7 +146,8 @@ if __name__ == '__main__':
                 dt_string = dt_object.strftime(format_string)
 
                 # Fetch history and prediction data, check data validation in the same time
-                aq_matrix, near_grid_data, fake_forecast_data, predict = check_valid(aq_name, dt_object, time_span)
+                aq_matrix, near_grid_data, fake_forecast_data, predict = check_valid(
+                    aq_name, dt_object, aq_dicts, grid_dicts, near_grids)
                 if aq_matrix is None:
                     continue
 
@@ -170,3 +173,7 @@ if __name__ == '__main__':
             print("{} - Have data, last valid {}".format(aq_name, last_valid_dt_object.strftime(format_string_2)))
         else:
             print("{} - No valid data".format(aq_name))
+
+
+if __name__ == "__main__":
+    export_data("2018-04-30-22", "2018-05-01-22")

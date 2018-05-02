@@ -62,10 +62,20 @@ def write_filled_dicts(filled_dicts, start_string, end_string, city):
         print("Filled {}".format(aq_name))
 
 
+def fill_data(city, start_str, end_str):
+    if city == "bj":
+        bj_original_aq_dicts = bj_raw_fetch.load_aq_dicts_none(start_string, end_string)
+        bj_aq_dicts = get_aq_dicts(predict_directory_dict["bj"], "bj")
+        bj_filled_dicts = get_filled_data(bj_original_aq_dicts, bj_aq_dicts, "bj")
+        write_filled_dicts(bj_filled_dicts, start_string, end_string, "bj")
+    elif city == "ld":
+        ld_original_aq_dicts = ld_raw_fetch.load_aq_dicts_none(start_string, end_string)
+        ld_aq_dicts = get_aq_dicts(predict_directory_dict["ld"], "ld")
+        ld_filled_dicts = get_filled_data(ld_original_aq_dicts, ld_aq_dicts, "ld")
+        write_filled_dicts(ld_filled_dicts, start_string, end_string, "ld")
+
+
 if __name__ == '__main__':
-    start_string, end_string = "2018-04-29-20", "2018-04-30-22"
+    start_string, end_string = "2018-04-30-22", "2018-05-01-22"
     # Proceed Beijing data
-    bj_original_aq_dicts = bj_raw_fetch.load_aq_dicts_none(start_string, end_string)
-    bj_aq_dicts = get_aq_dicts(predict_directory_dict["bj"], "bj")
-    bj_filled_dicts = get_filled_data(bj_original_aq_dicts, bj_aq_dicts, "bj")
-    write_filled_dicts(bj_filled_dicts, start_string, end_string, "bj")
+    fill_data("ld", start_string, end_string)

@@ -61,9 +61,9 @@ def check_valid(aq_name, start_object, near_grids):
         near_grid_data = []
 
         need_fake = False
-        fake_forecast_data = []
+        forecast_data = []
         try:
-            fake_forecast_data = get_forecast_data(start_object)
+            forecast_data = get_forecast_data(start_object)
         except FileNotFoundError:
             need_fake = True
         predict_data = []
@@ -84,12 +84,12 @@ def check_valid(aq_name, start_object, near_grids):
             near_grid_data.append(near_grid_data_onehour)
         if need_fake:
             for i in range(1, predict_span + 1):
-                fake_forecast_data.append(
+                forecast_data.append(
                     get_fake_forecast_data(
                         aq_name, (start_object + timedelta(hours=i)).strftime(format_string)))
     except KeyError:
-        return None, None, None, None
-    return aq_matrix, near_grid_data, fake_forecast_data, predict_data
+        return [None] * 4
+    return aq_matrix, near_grid_data, forecast_data, predict_data
 
 
 def get_grids(aq_name, n):
@@ -119,26 +119,20 @@ def get_forecast_data(dt_object):
     return parse.get_data(file_directory)
 
 
-def export_data(city, read_start_string, read_end_string, export_start_string=None,
-                export_end_string=None, use_fill=True, use_history=False):
+def export_data(city, read_start_string, read_end_string, export_start_string,
+                export_end_string, use_fill):
     start_string, end_string = read_start_string, read_end_string
     global aq_location, grid_location, grid_dicts, aq_dicts, forecast_directory, export_directory
     forecast_directory = forecast_directory_dict[city]
     export_directory = export_directory_dict[city]
     if city == "bj":
-        if not use_history:
-            aq_location, grid_location, aq_dicts, grid_dicts = bj_raw_fetch.load_all(start_string, end_string)
-            if use_fill:
-                aq_dicts = bj_raw_fetch.load_filled_dicts(start_string, end_string)
-        else:
-            aq_location, grid_location, aq_dicts, grid_dicts = bj_raw_fetch.load_all_history()
+        aq_location, grid_location, aq_dicts, grid_dicts = bj_raw_fetch.load_all(start_string, end_string)
+        if use_fill:
+            aq_dicts = bj_raw_fetch.load_filled_dicts(start_string, end_string)
     elif city == "ld":
-        if not use_history:
-            aq_location, grid_location, aq_dicts, grid_dicts = ld_raw_fetch.load_all(start_string, end_string)
-            if use_fill:
-                aq_dicts = ld_raw_fetch.load_filled_dicts(start_string, end_string)
-        else:
-            aq_location, grid_location, aq_dicts, grid_dicts = ld_raw_fetch.load_all_history()
+        aq_location, grid_location, aq_dicts, grid_dicts = ld_raw_fetch.load_all(start_string, end_string)
+        if use_fill:
+            aq_dicts = ld_raw_fetch.load_filled_dicts(start_string, end_string)
 
     if export_start_string is None:
         start_string, end_string = read_start_string, read_end_string
@@ -160,13 +154,6 @@ def export_data(city, read_start_string, read_end_string, export_start_string=No
 
         valid_count = 0
         near_grids, grid_coor_array = get_grids(aq_name, grid_circ)
-
-        # Validate the near grid matrix algorithm
-        # plt.figure()
-        # plt.title(aq_name)
-        # plt.plot(aq_location[aq_name][0], aq_location[aq_name][1], '.')
-        # plt.plot(grid_coor_array[:, 0], grid_coor_array[:, 1], '.')
-        # plt.show()
 
         # Exporting data from start to end
         last_valid_dt_object = None
@@ -191,7 +178,6 @@ def export_data(city, read_start_string, read_end_string, export_start_string=No
             h5_file.create_dataset("grid", data=np.asarray(grid_matrix))
             h5_file.create_dataset("history", data=np.asarray(history_matrix))
             h5_file.create_dataset("timestep", data=np.asarray(dt_int_array))
-            # h5_file.create_dataset("predict", data=np.asarray(predict_matrix))
             h5_file.create_dataset("weather_forecast", data=np.asarray(forecast_matrix))
             h5_file.flush()
             h5_file.close()
@@ -214,8 +200,6 @@ if __name__ == "__main__":
                         help="End datetime to export, in YYYY-MM-DD-hh format", default=None)
     parser.add_argument("-f", "--fill", type=str2bool,
                         help="Use filled data or not, input true/false", default=True)
-    parser.add_argument("-h", "--history", type=str2bool,
-                        help="Use history data", default=False)
     argv = parser.parse_args()
 
     export_data(argv.city, argv.start, argv.end, argv.exportstart, argv.exportend, argv.fill)

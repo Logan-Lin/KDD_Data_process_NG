@@ -1,17 +1,19 @@
-import sys
-sys.path.append("../")
-
 import argparse
 import math
+import os
 from datetime import datetime, timedelta
+from time import sleep
 
 import h5py
 import numpy as np
+from progressbar import ProgressBar as PB, Bar, Percentage
 
+from forecast import parse
 from utils import ld_raw_fetch
-from utils.tools import per_delta, str2bool
+from utils.tools import per_delta, get_one_hot, angle_to_int, str2bool
 
-aq_location, grid_location, aq_dicts, grid_dicts = dict(), dict(), dict(), dict()
+time_span = 24
+predict_span = 50
 
 
 def get_time_string(start_time_s, end_time_s, time_delta=timedelta(hours=1)):
@@ -23,18 +25,19 @@ def get_time_string(start_time_s, end_time_s, time_delta=timedelta(hours=1)):
     return time_string_array
 
 
-def get_nearest(aq_name):
-    coor = aq_location[aq_name]
+def get_nearest(coor):
     min_distance = 999999
     min_grid = ""
+    min_coor = []
     for key in grid_location.keys():
         grid_coor = grid_location[key]
-        dist = math.sqrt(math.pow(float(grid_coor[0]) - float(coor[0]), 2) +
-                         (math.pow(float(grid_coor[1]) - float(coor[1]), 2)))
+        dist = math.sqrt(math.pow(grid_coor[0] - coor[0], 2) +
+                         (math.pow(grid_coor[1] - coor[1], 2)))
         if min_distance > dist:
             min_distance = dist
             min_grid = key
-    return min_grid
+            min_coor = grid_coor
+    return min_grid, min_coor
 
 
 def cal_distance(coordinate1, coordinate2):
@@ -59,6 +62,43 @@ def cal_affect_factor(main_id, verse_id, dt_string):
     return math.cos(angle * wind_speed) / distance
 
 
+def get_fake_forecast_data(aq_name, dt_string):
+    grid_id, grid_coor = get_nearest(aq_location[aq_name])
+    data_row = grid_dicts[grid_id][dt_string]
+    # Temperature, humidity, wind direction, wind speed
+    return [data_row[0], data_row[2], data_row[4]] + get_one_hot(angle_to_int(data_row[3]), 16)
+
+
+def get_forecast_data(dt_object):
+    file_directory = "../forecast/data/bj_{}.txt".format((dt_object + timedelta(hours=8)).strftime("%m_%d_%H"))
+    return parse.get_data(file_directory)
+
+
+def check_valid(aq_name, start_object):
+    try:
+        aq_dict = aq_dicts[aq_name]
+        history_aq_matrix, history_meo_matrix, forecast_matrix, predict_aq_matrix = [], [], [], []
+        need_fake = False
+        try:
+            forecast_matrix = get_forecast_data(start_object)
+        except FileNotFoundError:
+            need_fake = True
+        for i in range(time_span - 1, -1, -1):
+            valid_dt_string = (start_object - timedelta(hours=i)).strftime(format_string)
+            history_aq_matrix.append(aq_dict[valid_dt_string])
+            history_meo_matrix.append(grid_dicts[(get_nearest(aq_location[aq_name]))[0]][valid_dt_string])
+        for i in range(1, predict_span + 1):
+            predict_dt_string = (start_object + timedelta(hours=i)).strftime(format_string)
+            if export_predict:
+                predict_aq_matrix.append(aq_dict[predict_dt_string])
+            if need_fake:
+                forecast_matrix.append(get_fake_forecast_data(aq_name, predict_dt_string))
+    except KeyError:
+        return [None] * 7
+    return history_aq_matrix, history_meo_matrix, forecast_matrix, predict_aq_matrix, \
+           start_object.weekday(), [1, 0][start_object.weekday() in range(5)], start_object.timestamp()
+
+
 # Load holiday date list
 format_string = "%Y-%m-%d %H:%M:%S"
 format_string_2 = "%Y-%m-%d-%H"
@@ -80,90 +120,98 @@ for i in range(len(holiday_start_ends)):
 for i in range(len(holiday_array)):
     holiday_array[i] = datetime.strptime(holiday_array[i], format_string).date()
 
-# Load csv header row list
-aq_row = ["PM2.5", "PM10", "NO2", "CO", "O3", "SO2"]
-head_row = ["time", "weekday", "workday", "holiday"] + aq_row + \
-           ["temperature", "pressure", "humidity", "wind_direction", "wind_speed"] + \
-           ["near_aq_factor"] + aq_row
 
-
-def export_data(read_start_string, read_end_string, export_start_string=None,
-                export_end_string=None, use_fill=True):
+# Export data
+def export_data(read_start_string, read_end_string, export_start_string, export_end_string, use_fill, use_history):
     start_string, end_string = read_start_string, read_end_string
     global aq_location, grid_location, aq_dicts, grid_dicts
-    aq_location, grid_location, aq_dicts, grid_dicts = ld_raw_fetch.load_all(start_string, end_string)
-    if use_fill:
-        aq_dicts = ld_raw_fetch.load_filled_dicts(start_string, end_string)
+    if use_history:
+        aq_location, grid_location, aq_dicts, grid_dicts = ld_raw_fetch.load_all_history()
+    else:
+        aq_location, grid_location, aq_dicts, grid_dicts = ld_raw_fetch.load_all(start_string, end_string)
+        if use_fill:
+            aq_dicts = ld_raw_fetch.load_filled_dicts(start_string, end_string)
+    global export_predict
+    export_predict = use_history
 
     if export_start_string is not None:
         start_string, end_string = export_start_string, export_end_string
-    h5_file = h5py.File("../data_ld/tradition_export/traditional_ld_{}_{}.h5".format(start_string, end_string), "w")
+    start_datetime, end_datetime = datetime.strptime(start_string, format_string_2), \
+                                   datetime.strptime(end_string, format_string_2)
+    diff = end_datetime - start_datetime
+    days, seconds = diff.days, diff.seconds
+    delta_time = int(days * 24 + seconds // 3600)
+
+    if use_history:
+        directory = "../data_ld/tradition_train/{}_{}".format(start_string, end_string)
+    else:
+        directory = "../data_ld/tradition_predict/{}_{}".format(start_string, end_string)
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+
     print("\nFetching data to export...")
     for aq_name in aq_location.keys():
-        start_datetime, end_datetime = datetime.strptime(start_string, format_string_2), \
-                                       datetime.strptime(end_string, format_string_2)
+        # if aq_name not in ["CD1"]:
+        #     continue
+        if use_history:
+            aggregate = 0
 
-        last_valid_dt_object = None
-        data_to_write = []
-        for dt_object_day in per_delta(start_datetime, end_datetime, timedelta(days=1)):
-            have_valid = False
-            data_matrix = []
+            sleep(0.1)
+            bar = PB(initial_value=0, maxval=delta_time + 1,
+                     widgets=[aq_name, Bar('=', '[', ']'), ' ', Percentage()])
 
-            for dt_object in per_delta(dt_object_day - timedelta(hours=23), dt_object_day, timedelta(hours=1)):
-                try:
-                    row = list()
-                    dt_string = dt_object.strftime(format_string)
+            timestamp_matrix, history_aq, history_meo, forecast, predict_aq = [], [], [], [], []
+            for dt_object in per_delta(start_datetime, end_datetime, timedelta(hours=1)):
+                aggregate += 1
+                bar.update(aggregate)
 
-                    row += [dt_object.timestamp()] \
-                        # +\
-                    # [dt_object.weekday()] + \
-                    # [[1, 0][dt_object.weekday() in range(5)]] + \
-                    # [[0, 1][dt_object.date in holiday_array]]
-                    row += (aq_dicts[aq_name][dt_string])
-                    nearest_grid = get_nearest(aq_name)
-                    row += (grid_dicts[nearest_grid][dt_string])
+                history_aq_matrix, history_meo_matrix, forecast_matrix, predict_matrix, \
+                weekday, weekend, timestamp = check_valid(aq_name, dt_object)
+                if history_aq_matrix is None:
+                    continue
 
-                    # other_aq = copy.copy(aq_location)
-                    # del other_aq[aq_name]
-                    #
-                    # factor_dict = dict()
-                    # for other_aq_id in other_aq.keys():
-                    #     factor = cal_affect_factor(other_aq_id, aq_name, dt_string)
-                    #     factor_dict[other_aq_id] = factor
-                    # sorted_factor_dict = sorted(factor_dict.items(), key=operator.itemgetter(1), reverse=True)
-                    # valid = False
-                    # other_aq_row = [None] * 2
-                    # for other_aq_id, factor in sorted_factor_dict:
-                    #     if factor < 0:
-                    #         valid = False
-                    #         break
-                    #     try:
-                    #         other_aq_row = aq_dicts[other_aq_id][dt_string]
-                    #         valid = True
-                    #     except KeyError:
-                    #         valid = False
-                    #     if valid:
-                    #         row += [factor] + other_aq_row
-                    #         break
-                    # if not valid:
-                    #     raise KeyError("Data loss here")
-
-                    data_matrix.append(row)
-                    have_valid = True
-
-                except KeyError as e:
-                    have_valid = False
-                    break
-            if have_valid:
-                last_valid_dt_object = dt_object_day
-                data_to_write = data_matrix
-        if last_valid_dt_object is not None:
-            print("{} last valid data - {}".format(aq_name, last_valid_dt_object.strftime(format_string_2)))
-            h5_file.create_dataset(aq_name, data=np.asarray(data_to_write))
+                timestamp_matrix.append([timestamp, weekday, weekend])
+                history_aq.append(history_aq_matrix)
+                history_meo.append(history_meo_matrix)
+                forecast.append(forecast_matrix)
+                predict_aq.append(predict_matrix)
+            h5_file = h5py.File("{}/{}.h5".format(directory, aq_name), "w")
+            h5_file.create_dataset("timestamp", data=np.array(timestamp_matrix))
+            h5_file.create_dataset("history_aq", data=np.array(history_aq))
+            h5_file.create_dataset("history_meo", data=np.array(history_meo))
+            h5_file.create_dataset("forecast", data=np.array(forecast))
+            h5_file.create_dataset("predict_aq", data=np.array(predict_aq))
+            h5_file.flush()
+            h5_file.close()
+            print(" {} finished".format(aq_name))
+            sleep(0.1)
         else:
-            print("{} has no valid data".format(aq_name))
-    h5_file.flush()
-    h5_file.close()
+            last_valid_dt = None
+            timestamp_matrix, history_aq, history_meo, forecast, predict_aq = [], [], [], [], []
+            for dt_object in per_delta(start_datetime, end_datetime, timedelta(hours=24)):
+                history_aq_matrix, history_meo_matrix, forecast_matrix, predict_matrix, \
+                weekday, weekend, timestamp = check_valid(aq_name, dt_object)
+                if history_aq_matrix is None:
+                    continue
+
+                timestamp_matrix = [[timestamp, weekday, weekend]]
+                history_aq = [history_aq_matrix]
+                history_meo = [history_meo_matrix]
+                forecast = [forecast_matrix]
+                predict_aq = [predict_matrix]
+                last_valid_dt = dt_object
+            if last_valid_dt is not None:
+                h5_file = h5py.File("{}/{}.h5".format(directory, aq_name), "w")
+                h5_file.create_dataset("timestamp", data=np.array(timestamp_matrix))
+                h5_file.create_dataset("history_aq", data=np.array(history_aq))
+                h5_file.create_dataset("history_meo", data=np.array(history_meo))
+                h5_file.create_dataset("forecast", data=np.array(forecast))
+                h5_file.create_dataset("predict_aq", data=np.array(predict_aq))
+                h5_file.flush()
+                h5_file.close()
+                print("{} last valid {}".format(aq_name, last_valid_dt.strftime(format_string_2)))
+            else:
+                print("{} no valid data".format(aq_name))
 
 
 if __name__ == "__main__":
@@ -178,6 +226,8 @@ if __name__ == "__main__":
                         help="End datetime to export, in YYYY-MM-DD-hh format", default=None)
     parser.add_argument("-f", "--fill", type=str2bool,
                         help="Use filled data or not, input true/false", default=True)
+    parser.add_argument("-his", "--history", type=str2bool,
+                        help="Use history data, export train data", default=False)
     argv = parser.parse_args()
 
-    export_data(argv.start, argv.end, argv.exportstart, argv.exportend, argv.fill)
+    export_data(argv.start, argv.end, argv.exportstart, argv.exportend, argv.fill, argv.history)

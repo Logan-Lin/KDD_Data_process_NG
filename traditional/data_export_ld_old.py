@@ -1,15 +1,17 @@
-import copy
+import sys
+sys.path.append("../")
+
+import argparse
 import math
-import operator
 from datetime import datetime, timedelta
-from progressbar import ProgressBar as PB, Bar, Percentage
-from time import sleep
 
 import h5py
 import numpy as np
 
 from utils import ld_raw_fetch
-from utils.tools import per_delta
+from utils.tools import per_delta, str2bool
+
+aq_location, grid_location, aq_dicts, grid_dicts = dict(), dict(), dict(), dict()
 
 
 def get_time_string(start_time_s, end_time_s, time_delta=timedelta(hours=1)):
@@ -83,48 +85,39 @@ aq_row = ["PM2.5", "PM10", "NO2", "CO", "O3", "SO2"]
 head_row = ["time", "weekday", "workday", "holiday"] + aq_row + \
            ["temperature", "pressure", "humidity", "wind_direction", "wind_speed"] + \
            ["near_aq_factor"] + aq_row
-# for i in range(34):
-#     head_row.append("near_aq_factor_" + str(i))
-#     head_row = head_row + aq_row
 
-# Export data
-if __name__ == "__main__":
-    start_string, end_string = "2018-04-01-00", "2018-04-29-22"
-    start_datetime, end_datetime = datetime.strptime(start_string, format_string_2), \
-                                   datetime.strptime(end_string, format_string_2)
-    diff = end_datetime - start_datetime
-    days, seconds = diff.days, diff.seconds
-    delta_time = int(days * 24 + seconds // 3600)
 
-    # aq_location, grid_location, aq_dicts, grid_dicts = ld_raw_fetch.load_all_history()
-    # aq_dicts = ld_raw_fetch.load_filled_dicts(start_string, end_string)
+def export_data(read_start_string, read_end_string, export_start_string=None,
+                export_end_string=None, use_fill=True):
+    start_string, end_string = read_start_string, read_end_string
+    global aq_location, grid_location, aq_dicts, grid_dicts
     aq_location, grid_location, aq_dicts, grid_dicts = ld_raw_fetch.load_all(start_string, end_string)
+    if use_fill:
+        aq_dicts = ld_raw_fetch.load_filled_dicts(start_string, end_string)
 
-    h5_file = h5py.File("../data_ld/tradition_train/traditional_ld_{}_{}.h5".format(start_string, end_string), "w")
+    if export_start_string is not None:
+        start_string, end_string = export_start_string, export_end_string
+    h5_file = h5py.File("../data_ld/tradition_export/traditional_ld_{}_{}.h5".format(start_string, end_string), "w")
     print("\nFetching data to export...")
     for aq_name in aq_location.keys():
-        aggregate = 0
+        start_datetime, end_datetime = datetime.strptime(start_string, format_string_2), \
+                                       datetime.strptime(end_string, format_string_2)
 
-        sleep(0.1)
-        bar = PB(initial_value=0, maxval=delta_time + 1,
-                 widgets=[aq_name, Bar('=', '[', ']'), ' ', Percentage()])
-
+        last_valid_dt_object = None
         data_to_write = []
-        for dt_object_day in per_delta(start_datetime, end_datetime, timedelta(hours=1)):
-            aggregate += 1
-            bar.update(aggregate)
-
+        for dt_object_day in per_delta(start_datetime, end_datetime, timedelta(days=1)):
+            have_valid = False
             data_matrix = []
-            have_valid = True
-            for dt_object in per_delta(dt_object_day - timedelta(hours=73), dt_object_day, timedelta(hours=1)):
+
+            for dt_object in per_delta(dt_object_day - timedelta(hours=23), dt_object_day, timedelta(hours=1)):
                 try:
                     row = list()
                     dt_string = dt_object.strftime(format_string)
 
-                    row += [dt_object.timestamp()]
-                    # +\
-                    # [dt_object.weekday()] + \
-                    # [[1, 0][dt_object.weekday() in range(5)]] + \
+                    row += [dt_object.timestamp()] +\
+                    [dt_object.weekday()] + \
+                    [[1, 0][dt_object.weekday() in range(5)]]
+                    # + \
                     # [[0, 1][dt_object.date in holiday_array]]
                     row += (aq_dicts[aq_name][dt_string])
                     nearest_grid = get_nearest(aq_name)
@@ -156,13 +149,35 @@ if __name__ == "__main__":
                     #     raise KeyError("Data loss here")
 
                     data_matrix.append(row)
+                    have_valid = True
+
                 except KeyError as e:
                     have_valid = False
                     break
             if have_valid:
-                data_to_write.append(data_matrix)
-        h5_file.create_dataset(aq_name, data=np.asarray(data_to_write))
-        print("{} finished".format(aq_name))
-        h5_file.flush()
-        sleep(0.1)
+                last_valid_dt_object = dt_object_day
+                data_to_write = data_matrix
+        if last_valid_dt_object is not None:
+            print("{} last valid data - {}".format(aq_name, last_valid_dt_object.strftime(format_string_2)))
+            h5_file.create_dataset(aq_name, data=np.asarray(data_to_write))
+        else:
+            print("{} has no valid data".format(aq_name))
+    h5_file.flush()
     h5_file.close()
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-s", "--start", type=str,
+                        help="Start datetime string, in YYYY-MM-DD-hh format", default="2018-04-30-22")
+    parser.add_argument("-e", "--end", type=str,
+                        help="End datetime string, in YYYY-MM-DD-hh format", default="2018-05-01-22")
+    parser.add_argument("-es", "--exportstart", type=str,
+                        help="Start datetime to export, in YYYY-MM-DD-hh format", default=None)
+    parser.add_argument("-ee", "--exportend", type=str,
+                        help="End datetime to export, in YYYY-MM-DD-hh format", default=None)
+    parser.add_argument("-f", "--fill", type=str2bool,
+                        help="Use filled data or not, input true/false", default=True)
+    argv = parser.parse_args()
+
+    export_data(argv.start, argv.end, argv.exportstart, argv.exportend, argv.fill)

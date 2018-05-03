@@ -277,7 +277,6 @@ def load_grid_history_dicts():
                     pass
         grid_dicts[grid_name] = grid_dict
         loaded += 1
-        bar.update(loaded)
 
     sleep(0.1)
     return grid_dicts

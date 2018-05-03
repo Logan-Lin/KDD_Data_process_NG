@@ -120,19 +120,25 @@ def get_forecast_data(dt_object):
 
 
 def export_data(city, read_start_string, read_end_string, export_start_string=None,
-                export_end_string=None, use_fill=True):
+                export_end_string=None, use_fill=True, use_history=False):
     start_string, end_string = read_start_string, read_end_string
     global aq_location, grid_location, grid_dicts, aq_dicts, forecast_directory, export_directory
     forecast_directory = forecast_directory_dict[city]
     export_directory = export_directory_dict[city]
     if city == "bj":
-        aq_location, grid_location, aq_dicts, grid_dicts = bj_raw_fetch.load_all(start_string, end_string)
-        if use_fill:
-            aq_dicts = bj_raw_fetch.load_filled_dicts(start_string, end_string)
+        if not use_history:
+            aq_location, grid_location, aq_dicts, grid_dicts = bj_raw_fetch.load_all(start_string, end_string)
+            if use_fill:
+                aq_dicts = bj_raw_fetch.load_filled_dicts(start_string, end_string)
+        else:
+            aq_location, grid_location, aq_dicts, grid_dicts = bj_raw_fetch.load_all_history()
     elif city == "ld":
-        aq_location, grid_location, aq_dicts, grid_dicts = ld_raw_fetch.load_all(start_string, end_string)
-        if use_fill:
-            aq_dicts = ld_raw_fetch.load_filled_dicts(start_string, end_string)
+        if not use_history:
+            aq_location, grid_location, aq_dicts, grid_dicts = ld_raw_fetch.load_all(start_string, end_string)
+            if use_fill:
+                aq_dicts = ld_raw_fetch.load_filled_dicts(start_string, end_string)
+        else:
+            aq_location, grid_location, aq_dicts, grid_dicts = ld_raw_fetch.load_all_history()
 
     if export_start_string is None:
         start_string, end_string = read_start_string, read_end_string
@@ -208,6 +214,8 @@ if __name__ == "__main__":
                         help="End datetime to export, in YYYY-MM-DD-hh format", default=None)
     parser.add_argument("-f", "--fill", type=str2bool,
                         help="Use filled data or not, input true/false", default=True)
+    parser.add_argument("-h", "--history", type=str2bool,
+                        help="Use history data", default=False)
     argv = parser.parse_args()
 
     export_data(argv.city, argv.start, argv.end, argv.exportstart, argv.exportend, argv.fill)

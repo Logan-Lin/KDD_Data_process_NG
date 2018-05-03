@@ -164,8 +164,54 @@ def load_aq_all_dicts():
     return aq_dicts
 
 
+def load_aq_history_dicts():
+    aq_dicts = dict()
+    print("Loading aq data...")
+    for aq_name in aq_location.keys():
+        loss_count = 0
+        valid_count = 0
+        aq_dict = dict()
+        with open("../data_m/aq/{}.csv".format(aq_name), "r") as aq_file:
+            reader = csv.reader(aq_file, delimiter=',')
+            for row in reader:
+                try:
+                    aq_dict[row[0]] = list(map(float_m, row[1:3]))
+                    valid_count += 1
+                except ValueError:
+                    loss_count += 1
+                    pass
+        # print(aq_name, " loss ", loss_count, ", loss ", 100 * (loss_count / (valid_count + loss_count)), sep='')
+        aq_dicts[aq_name] = aq_dict
+    return aq_dicts
+
+
+def load_grid_history_dicts():
+    grid_dicts = dict()
+    loaded = 0
+
+    print("Loading grid meo data...")
+    for grid_name in grid_location.keys():
+        grid_dict = dict()
+        with open("../data/meo/{}.csv".format(grid_name), "r") as grid_file:
+            reader = csv.reader(grid_file, delimiter=',')
+            for row in reader:
+                try:
+                    grid_dict[row[0]] = list(map(float_m, row[1:]))
+                except ValueError:
+                    pass
+        grid_dicts[grid_name] = grid_dict
+        loaded += 1
+
+    sleep(0.1)
+    return grid_dicts
+
+
 def load_all(start_str, end_str):
     return aq_location, grid_location, load_aq_dicts(start_str, end_str), load_grid_dicts(start_str, end_str)
+
+
+def load_all_history():
+    return aq_location, grid_location, load_aq_history_dicts(), load_grid_history_dicts()
 
 
 def load_aq(start_str='', end_str=''):

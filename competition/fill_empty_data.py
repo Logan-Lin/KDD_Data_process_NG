@@ -58,6 +58,7 @@ def get_filled_data(original_dicts, predict_dicts, city):
 
 def write_filled_dicts(filled_dicts, start_string, end_string, city, filled_counts):
     directory = "{}/{}_{}".format(filled_directory_dict[city], start_string, end_string)
+    print("Filled data write to {}".format(directory))
     if not exists(directory):
         makedirs(directory)
     for aq_name in filled_dicts.keys():
@@ -86,7 +87,7 @@ def fill_data(city, start_string, end_string):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument("-c", "--city", type=str,
-                        help="City, input 'bj' or 'ld' for Beijing and London", default="bj")
+                        help="City, input 'bj' or 'ld' for Beijing and London", default="ld")
     parser.add_argument("-s", "--start", type=str,
                         help="Start datetime string, in YYYY-MM-DD-hh format", default="2018-04-30-22")
     parser.add_argument("-e", "--end", type=str,

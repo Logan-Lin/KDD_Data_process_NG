@@ -1,3 +1,6 @@
+import sys
+sys.path.append("../")
+
 import argparse
 import math
 import os
@@ -6,7 +9,6 @@ from time import sleep
 
 import h5py
 import numpy as np
-from progressbar import ProgressBar as PB, Bar, Percentage
 
 from forecast import parse
 from utils import ld_raw_fetch, export_statistic
@@ -124,7 +126,8 @@ for i in range(len(holiday_array)):
 
 
 # Export data
-def export_data(read_start_string, read_end_string, export_start_string, export_end_string, use_fill, use_history):
+def export_data(read_start_string, read_end_string, export_start_string, export_end_string,
+                use_fill, use_history, export_train):
     start_string, end_string = read_start_string, read_end_string
     global aq_location, grid_location, aq_dicts, grid_dicts
     if use_history:
@@ -134,7 +137,7 @@ def export_data(read_start_string, read_end_string, export_start_string, export_
         if use_fill:
             aq_dicts = ld_raw_fetch.load_filled_dicts(start_string, end_string)
     global export_predict
-    export_predict = use_history
+    export_predict = export_train
 
     if export_start_string is not None:
         start_string, end_string = export_start_string, export_end_string
@@ -144,7 +147,7 @@ def export_data(read_start_string, read_end_string, export_start_string, export_
     days, seconds = diff.days, diff.seconds
     delta_time = int(days * 24 + seconds // 3600)
 
-    if use_history:
+    if export_train:
         directory = "../data_ld/tradition_train/{}_{}".format(start_string, end_string)
     else:
         directory = "../data_ld/tradition_predict/{}_{}".format(start_string, end_string)
@@ -152,20 +155,20 @@ def export_data(read_start_string, read_end_string, export_start_string, export_
         os.makedirs(directory)
 
     print("\nFetching data to export...")
+    out_file = open("out{}_{}.txt".format(start_string, end_string), "w")
     for aq_name in aq_location.keys():
         # if aq_name not in ["CD1"]:
         #     continue
         timestamp_matrix, history_aq, history_meo, forecast, predict_aq, statistic = [], [], [], [], [], []
-        if use_history:
+        if export_train:
             aggregate = 0
-
-            sleep(0.1)
-            bar = PB(initial_value=0, maxval=delta_time + 1,
-                     widgets=[aq_name, Bar('=', '[', ']'), ' ', Percentage()])
 
             for dt_object in per_delta(start_datetime, end_datetime, timedelta(hours=1)):
                 aggregate += 1
-                bar.update(aggregate)
+                if aggregate % 100 == 0:
+                    print("{} exported %3.2f%%".format(aq_name) % (100 * aggregate / delta_time))
+                    out_file.write("{} exported %3.2f%%\n".format(aq_name) % (100 * aggregate / delta_time))
+                    out_file.flush()
 
                 history_aq_matrix, history_meo_matrix, forecast_matrix, predict_matrix, \
                 weekday, weekend, timestamp, statistic_matrix = check_valid(aq_name, dt_object)
@@ -225,7 +228,7 @@ if __name__ == "__main__":
     parser.add_argument("-s", "--start", type=str,
                         help="Start datetime string, in YYYY-MM-DD-hh format", default="2017-01-01-00")
     parser.add_argument("-e", "--end", type=str,
-                        help="End datetime string, in YYYY-MM-DD-hh format", default="2018-04-01-00")
+                        help="End datetime string, in YYYY-MM-DD-hh format", default="2017-02-01-00")
     parser.add_argument("-es", "--exportstart", type=str,
                         help="Start datetime to export, in YYYY-MM-DD-hh format", default=None)
     parser.add_argument("-ee", "--exportend", type=str,
@@ -234,6 +237,8 @@ if __name__ == "__main__":
                         help="Use filled data or not, input true/false", default=True)
     parser.add_argument("-his", "--history", type=str2bool,
                         help="Use history data, export train data", default=True)
+    parser.add_argument("-t", "--train", type=str2bool,
+                        help="Export train data or predict data", default=True)
     argv = parser.parse_args()
 
-    export_data(argv.start, argv.end, argv.exportstart, argv.exportend, argv.fill, argv.history)
+    export_data(argv.start, argv.end, argv.exportstart, argv.exportend, argv.fill, argv.history, argv.train)

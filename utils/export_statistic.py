@@ -30,7 +30,7 @@ def get_month_data(aq_name, dt_string, shortest=300):
     max = list(selected_df.max(axis=0))
     min = list(selected_df.min(axis=0))
     variance = list(selected_df.var(axis=0))
-    return list(map(list, zip(*[avg, max, min, variance])))
+    return [avg, max, min, variance]
 
 
 df_dict = dict()

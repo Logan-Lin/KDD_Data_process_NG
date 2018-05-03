@@ -9,7 +9,7 @@ import numpy as np
 from progressbar import ProgressBar as PB, Bar, Percentage
 
 from forecast import parse
-from utils import ld_raw_fetch
+from utils import ld_raw_fetch, export_statistic
 from utils.tools import per_delta, get_one_hot, angle_to_int, str2bool
 
 time_span = 24
@@ -77,7 +77,7 @@ def get_forecast_data(dt_object):
 def check_valid(aq_name, start_object):
     try:
         aq_dict = aq_dicts[aq_name]
-        history_aq_matrix, history_meo_matrix, forecast_matrix, predict_aq_matrix = [], [], [], []
+        history_aq_matrix, history_meo_matrix, forecast_matrix, predict_aq_matrix, statistic_matrix = [], [], [], [], []
         need_fake = False
         try:
             forecast_matrix = get_forecast_data(start_object)
@@ -89,14 +89,16 @@ def check_valid(aq_name, start_object):
             history_meo_matrix.append(grid_dicts[(get_nearest(aq_location[aq_name]))[0]][valid_dt_string])
         for i in range(1, predict_span + 1):
             predict_dt_string = (start_object + timedelta(hours=i)).strftime(format_string)
+            statistic_matrix.append(export_statistic.get_month_data(aq_name, predict_dt_string))
             if export_predict:
                 predict_aq_matrix.append(aq_dict[predict_dt_string])
             if need_fake:
                 forecast_matrix.append(get_fake_forecast_data(aq_name, predict_dt_string))
     except KeyError:
-        return [None] * 7
+        return [None] * 8
     return history_aq_matrix, history_meo_matrix, forecast_matrix, predict_aq_matrix, \
-           start_object.weekday(), [1, 0][start_object.weekday() in range(5)], start_object.timestamp()
+           start_object.weekday(), [1, 0][start_object.weekday() in range(5)], start_object.timestamp(), \
+           statistic_matrix
 
 
 # Load holiday date list
@@ -153,6 +155,7 @@ def export_data(read_start_string, read_end_string, export_start_string, export_
     for aq_name in aq_location.keys():
         # if aq_name not in ["CD1"]:
         #     continue
+        timestamp_matrix, history_aq, history_meo, forecast, predict_aq, statistic = [], [], [], [], [], []
         if use_history:
             aggregate = 0
 
@@ -160,13 +163,12 @@ def export_data(read_start_string, read_end_string, export_start_string, export_
             bar = PB(initial_value=0, maxval=delta_time + 1,
                      widgets=[aq_name, Bar('=', '[', ']'), ' ', Percentage()])
 
-            timestamp_matrix, history_aq, history_meo, forecast, predict_aq = [], [], [], [], []
             for dt_object in per_delta(start_datetime, end_datetime, timedelta(hours=1)):
                 aggregate += 1
                 bar.update(aggregate)
 
                 history_aq_matrix, history_meo_matrix, forecast_matrix, predict_matrix, \
-                weekday, weekend, timestamp = check_valid(aq_name, dt_object)
+                weekday, weekend, timestamp, statistic_matrix = check_valid(aq_name, dt_object)
                 if history_aq_matrix is None:
                     continue
 
@@ -175,22 +177,24 @@ def export_data(read_start_string, read_end_string, export_start_string, export_
                 history_meo.append(history_meo_matrix)
                 forecast.append(forecast_matrix)
                 predict_aq.append(predict_matrix)
+                statistic.append(statistic_matrix)
+
             h5_file = h5py.File("{}/{}.h5".format(directory, aq_name), "w")
             h5_file.create_dataset("timestamp", data=np.array(timestamp_matrix))
             h5_file.create_dataset("history_aq", data=np.array(history_aq))
             h5_file.create_dataset("history_meo", data=np.array(history_meo))
             h5_file.create_dataset("forecast", data=np.array(forecast))
             h5_file.create_dataset("predict_aq", data=np.array(predict_aq))
+            h5_file.create_dataset("statistic", data=np.array(statistic))
             h5_file.flush()
             h5_file.close()
             print(" {} finished".format(aq_name))
             sleep(0.1)
         else:
             last_valid_dt = None
-            timestamp_matrix, history_aq, history_meo, forecast, predict_aq = [], [], [], [], []
             for dt_object in per_delta(start_datetime, end_datetime, timedelta(hours=24)):
                 history_aq_matrix, history_meo_matrix, forecast_matrix, predict_matrix, \
-                weekday, weekend, timestamp = check_valid(aq_name, dt_object)
+                weekday, weekend, timestamp, statistic_matrix = check_valid(aq_name, dt_object)
                 if history_aq_matrix is None:
                     continue
 
@@ -199,6 +203,7 @@ def export_data(read_start_string, read_end_string, export_start_string, export_
                 history_meo = [history_meo_matrix]
                 forecast = [forecast_matrix]
                 predict_aq = [predict_matrix]
+                statistic = [statistic_matrix]
                 last_valid_dt = dt_object
             if last_valid_dt is not None:
                 h5_file = h5py.File("{}/{}.h5".format(directory, aq_name), "w")
@@ -207,6 +212,7 @@ def export_data(read_start_string, read_end_string, export_start_string, export_
                 h5_file.create_dataset("history_meo", data=np.array(history_meo))
                 h5_file.create_dataset("forecast", data=np.array(forecast))
                 h5_file.create_dataset("predict_aq", data=np.array(predict_aq))
+                h5_file.create_dataset("statistic", data=np.array(statistic))
                 h5_file.flush()
                 h5_file.close()
                 print("{} last valid {}".format(aq_name, last_valid_dt.strftime(format_string_2)))
@@ -217,9 +223,9 @@ def export_data(read_start_string, read_end_string, export_start_string, export_
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-s", "--start", type=str,
-                        help="Start datetime string, in YYYY-MM-DD-hh format", default="2018-04-30-22")
+                        help="Start datetime string, in YYYY-MM-DD-hh format", default="2017-01-01-00")
     parser.add_argument("-e", "--end", type=str,
-                        help="End datetime string, in YYYY-MM-DD-hh format", default="2018-05-01-22")
+                        help="End datetime string, in YYYY-MM-DD-hh format", default="2018-04-01-00")
     parser.add_argument("-es", "--exportstart", type=str,
                         help="Start datetime to export, in YYYY-MM-DD-hh format", default=None)
     parser.add_argument("-ee", "--exportend", type=str,
@@ -227,7 +233,7 @@ if __name__ == "__main__":
     parser.add_argument("-f", "--fill", type=str2bool,
                         help="Use filled data or not, input true/false", default=True)
     parser.add_argument("-his", "--history", type=str2bool,
-                        help="Use history data, export train data", default=False)
+                        help="Use history data, export train data", default=True)
     argv = parser.parse_args()
 
     export_data(argv.start, argv.end, argv.exportstart, argv.exportend, argv.fill, argv.history)

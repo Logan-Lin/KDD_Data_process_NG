@@ -189,7 +189,7 @@ def export_data(city, read_start_string, read_end_string, export_start_string,
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-c", "--city", type=str,
-                        help="City, input 'bj' or 'ld' for Beijing and London", default="bj")
+                        help="City, input 'bj' or 'ld' for Beijing and London", default="ld")
     parser.add_argument("-s", "--start", type=str,
                         help="Start datetime string, in YYYY-MM-DD-hh format", default="2018-04-30-22")
     parser.add_argument("-e", "--end", type=str,

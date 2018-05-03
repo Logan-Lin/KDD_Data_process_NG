@@ -8,7 +8,7 @@ import h5py
 import numpy as np
 import matplotlib.pyplot as plt
 
-from utils.ld_raw_fetch import load_all, load_aq_modified_no2_dicts
+from utils.ld_raw_fetch import *
 from utils.tools import per_delta, angle_to_int, get_one_hot
 
 
@@ -86,8 +86,8 @@ def get_grids(aq_name, n):
 
 
 if __name__ == '__main__':
-    start_string, end_string = "2018-04-01-20", "2018-04-25-22"
-    aq_location, grid_location, aq_dicts, grid_dicts = load_all(start_string, end_string)
+    start_string, end_string = "2017-01-01-00", "2018-04-01-00"
+    aq_location, grid_location, aq_dicts, grid_dicts = load_all_history()
 
     format_string = "%Y-%m-%d %H:%M:%S"
     format_string_2 = "%Y-%m-%d-%H"
@@ -140,7 +140,7 @@ if __name__ == '__main__':
             grid_matrix.append(near_grid_data)
             history_matrix.append(aq_matrix)
             predict_matrix.append(predict)
-            dt_int_array.append(int(mktime(dt_object.timetuple())))
+            dt_int_array.append(dt_object.timestamp())
             fake_forecast_matrix.append(fake_forecast_data)
             valid_count += 1
 

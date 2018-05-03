@@ -36,6 +36,7 @@ def get_month_data(aq_name, dt_string, shortest=300):
 df_dict = dict()
 for aq_name in ld_raw_fetch.aq_location:
     df = pd.read_csv("../data_ld_m/aq/{}.csv".format(aq_name), names=["utctime", "PM2.5", "PM10", "NO2"])
+    df = df.drop(["NO2"], axis=1)
     df = df.dropna(axis=0, how='any')
     date_index = pd.to_datetime(df["utctime"])
     df = df.drop(["utctime"], axis=1)
@@ -44,5 +45,5 @@ for aq_name in ld_raw_fetch.aq_location:
 
 
 if __name__ == "__main__":
-    statistic = list(get_month_data("BL0", "2017-12-01 00:00:00"))
+    statistic = list(get_month_data("KF1", "2017-10-27 00:00:00"))
     print()

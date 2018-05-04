@@ -1,9 +1,8 @@
-import pandas as pd
 import os
-from datetime import datetime
 
+import pandas as pd
 
-data_header = {"bj": {"aq": ["utc_time", "pm2.5", "pm10", "no2", "co", "o3", "so2"],
+data_header_dict = {"bj": {"aq": ["utc_time", "pm2.5", "pm10", "no2", "co", "o3", "so2"],
                       "meo": ["utc_time", "temperature", "pressure", "humidity", "wind_direction", "wind_speed"]},
                "ld": {"aq": ["utc_time", "pm2.5", "pm10", "no2"],
                       "meo": ["utc_time", "temperature", "pressure", "humidity", "wind_direction", "wind_speed"]}}
@@ -11,14 +10,15 @@ data_header = {"bj": {"aq": ["utc_time", "pm2.5", "pm10", "no2", "co", "o3", "so
 # api_data_directory.format(city, data_type) to get real directory
 api_data_directory = "../competition/data_{}_api_m/{}"
 filled_data_directory = {"bj": "../data_m/aq_filled", "ld": "../data_ld_m/aq_filled"}
+history_data_directory = {"bj": {"aq": "../data_m/aq", "meo": "../data/meo"},
+                          "ld": {"aq": "../data_ld/aq", "meo": "../data/meo"}}
 
 
-def load_directory_data(city, data_type, directory, drop=None, export_none=False):
+def load_directory_data(directory, data_header=None, drop=None, export_none=False):
     """
     Fetching all data from directory, have the ability of recursive scanning.
 
-    :param city: str, representing which city's data you want to fetch. Can only between "bj" or "ld".
-    :param data_type: str, representing what kind of data you want to export. Can only between "aq" and "meo".
+    :param data_header: indicating the head of data frame you want to append.
     :param directory: str or list, representing the directory(s) you want to fetch from.
         Be sure to correspond to city and data type you give.
     :param drop: list, containing all the column name you want to drop. Can be set to none to drop nothing
@@ -38,7 +38,7 @@ def load_directory_data(city, data_type, directory, drop=None, export_none=False
                 name, ext = os.path.splitext(filename)
                 if ext == ".csv":
                     file_dir = os.path.join(root, filename)
-                    df_single = pd.read_csv(file_dir, "w", delimiter=",", names=data_header[city][data_type])
+                    df_single = pd.read_csv(file_dir, "w", delimiter=",", names=data_header)
                     date_index = pd.to_datetime(df_single["utc_time"])
                     df_single["id"] = name
                     df_single = df_single.set_index(["id"])

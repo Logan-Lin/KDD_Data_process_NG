@@ -14,7 +14,7 @@ history_data_directory = {"bj": {"aq": "../data_m/aq", "meo": "../data/meo"},
                           "ld": {"aq": "../data_ld/aq", "meo": "../data/meo"}}
 
 
-def load_directory_data(directory, data_header=None, drop=None, export_none=False):
+def load_directory_data(directory, data_header=None, drop=None, export_none=False, additional_index=None):
     """
     Fetching all data from directory, have the ability of recursive scanning.
 
@@ -23,6 +23,7 @@ def load_directory_data(directory, data_header=None, drop=None, export_none=Fals
     :param drop: list, containing all the column name you want to drop. Can be set to none to drop nothing
     :param export_none: bool, indicating drop rows that contain empty data or not.
         Noted that this drop are proceed after the drop of columns.
+    :param additional_index: list, indicating the name of column you want to assign as index.
     :return: dict, containing all the data.
     :except: FileNotFoundError if the given directory not exist.
     """
@@ -43,6 +44,8 @@ def load_directory_data(directory, data_header=None, drop=None, export_none=Fals
                     df_single = df_single.set_index(["id"])
                     df_single = df_single.drop(["utc_time"], axis=1)
                     df_single = df_single.set_index([date_index], append=True)
+                    if additional_index is not None:
+                        df_single = df_single.set_index(additional_index, append=True)
                     df_array.append(df_single)
 
     # Assign index and proceed drop

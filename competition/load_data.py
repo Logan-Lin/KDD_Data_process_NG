@@ -55,12 +55,3 @@ def load_directory_data(city, data_type, directory, drop=None, export_none=False
         df = df.dropna(axis=0, how='any')
     df = df[~df.index.duplicated(keep='last')]
     return df
-
-
-if __name__ == "__main__":
-    df = load_directory_data("ld", "aq", filled_data_directory["ld"], drop=["no2"])
-    df = df.loc["BL0", :]
-    print(df.index)
-    print(df.loc[
-          datetime.strptime("2018-04-10 00:00:00", "%Y-%m-%d %H:%M:%S"):
-          datetime.strptime("2018-04-12 00:00:00", "%Y-%m-%d %H:%M:%S")])

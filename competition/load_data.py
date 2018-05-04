@@ -18,9 +18,8 @@ def load_directory_data(directory, data_header=None, drop=None, export_none=Fals
     """
     Fetching all data from directory, have the ability of recursive scanning.
 
-    :param data_header: indicating the head of data frame you want to append.
     :param directory: str or list, representing the directory(s) you want to fetch from.
-        Be sure to correspond to city and data type you give.
+    :param data_header: indicating the head of data frame you want to append.
     :param drop: list, containing all the column name you want to drop. Can be set to none to drop nothing
     :param export_none: bool, indicating drop rows that contain empty data or not.
         Noted that this drop are proceed after the drop of columns.

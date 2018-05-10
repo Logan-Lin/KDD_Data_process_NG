@@ -188,19 +188,19 @@ def export_data(city, start, end, train, fill, history_length, predict_length, g
                     last_valid_dt = dt
                 except KeyError:
                     continue
-            h5_file = h5py.File(os.path.join(data_dir, "{}.csv".format(aq_name)), "w")
+            h5_file = h5py.File(os.path.join(data_dir, "{}.h5".format(aq_name)), "w")
             if train:
                 print("Writing {} data, valid count {}".format(aq_name, valid))
             else:
                 if last_valid_dt is None:
                     print("{}\tno valid data.".format(aq_name))
                     continue
-                history_aq = history_aq[-1]
-                history_grid = history_grid[-1]
-                forecast = forecast[-1]
-                timestamps = timestamps[-1]
+                history_aq = [history_aq[-1]]
+                history_grid = [history_grid[-1]]
+                forecast = [forecast[-1]]
+                timestamps = [timestamps[-1]]
                 print("{}\tlast valid data\t{}".format(aq_name, last_valid_dt))
-            h5_file.create_dataset("grid", data=np.array(history_grid))
+            h5_file.create_dataset("grid", data=np.moveaxis(np.array(history_grid), 3, 1))
             h5_file.create_dataset("history", data=np.array(history_aq))
             h5_file.create_dataset("predict", data=np.array(predict_aq))
             h5_file.create_dataset("timestep", data=np.array(timestamps))

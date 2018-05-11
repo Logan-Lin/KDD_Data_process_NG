@@ -25,6 +25,12 @@ column_dict = {"bj": ["pm2.5", "pm10", "no2", "co", "o3", "so2"],
 
 
 def prepare_data(city, fill):
+    """
+    Prepare needed location, aq and grid data for the program.
+
+    :param city: string, "bj" or "ld" for Beijing and London.
+    :param fill: bool, load filled data or not.
+    """
     global aq_location, grid_location, aq_df, grid_df
 
     # Load location data
@@ -35,7 +41,6 @@ def prepare_data(city, fill):
 
     # Load aq and meo data
     aq_load_directories = [load_data.history_data_directory[city]["aq"]]
-    # aq_load_directories = []
     if fill:
         aq_load_directories.append(load_data.filled_data_directory[city])
     else:
@@ -49,6 +54,18 @@ def prepare_data(city, fill):
 
 
 def fetch_span(start, end, df, time_span, columns):
+    """
+    Fetch a range of data based on start and end datetime.
+
+    :param start: datetime object, indicating the start of range.
+    :param end: datetime object, indicating the end of range.
+    :param df: pandas data frame, where you want to fetch data from.
+    :param time_span: int, the length of data required, count in hour.
+    :param columns: list, specifying the names of columns you want to include in fetched data.
+    :return: fetched data, in numpy array form.
+    :raise: KeyError when fetched data are no tas long as the given time_span,
+        probably mean there is data loss between start and end datetime.
+    """
     result = df.loc[start:end, columns]
     if result.shape[0] < time_span:
         raise KeyError("Available data not long enough")
@@ -57,6 +74,19 @@ def fetch_span(start, end, df, time_span, columns):
 
 
 def fetch_grid(start, end, df_matrix, time_span, columns=None):
+    """
+    Fetch a range of grid matrix data based on given start and end datetime.
+
+    :param start: datetime object, indicating the start of range.
+    :param end: datetime object, indicating the end of range.
+    :param df_matrix: n*n list matrix, each item is a pandas data frame containing corresponding grid data.
+    :param time_span: int, the length of data required, count in hour.
+    :param columns: list, specifying the names of columns you want to include in fetched data.
+        But in most cases, you can ignore it to use the default column selection.
+    :return: n*n list matrix, fetched data, each item in numpy array form.
+    :raise: KeyError when fetched data are no tas long as the given time_span,
+        probably mean there is data loss between start and end datetime.
+    """
     if columns is None:
         columns = ["temperature", "pressure", "humidity", "wind_direction", "wind_speed"]
     grid_matrix = []
@@ -72,6 +102,16 @@ def fetch_grid(start, end, df_matrix, time_span, columns=None):
 
 
 def get_forecast_data(dt_object, city, center_grid_df):
+    """
+    Fetch forecast data, either from forecast website or forged from grid meo data.
+
+    :param dt_object: datetime object, specifying the datetime of forecast data you want to fetch.
+    :param city: string, "bj" or "ld" for Beijing and London.
+    :param center_grid_df: the data frame of the center of grid matrix, which is the nearest grid.
+    :return: forecast data, in list matrix or numpy array form.
+    """
+    if dt_object.year == 2017:
+        raise FileNotFoundError
     file_directory = forecast_directory_dict[city].format((dt_object + timedelta(hours=8)).strftime("%m_%d_%H"))
     try:
         return parse.get_data(file_directory)
@@ -156,7 +196,8 @@ def export_data(city, start, end, train, fill, history_length, predict_length, g
             os.makedirs(data_dir)
         print("Exporting to directory {}".format(data_dir))
 
-        start_dt, end_dt = datetime.strptime(single_start, format_string[1]), datetime.strptime(single_end, format_string[1])
+        start_dt, end_dt = datetime.strptime(single_start, format_string[1]), \
+                           datetime.strptime(single_end, format_string[1])
         for aq_name, aq_coor in aq_location.items():
             near_grid_names, near_grid_coors = get_near_grid_matrix(aq_coor, grid_length)
             single_aq_df = aq_df.loc[aq_name, :]
@@ -176,14 +217,16 @@ def export_data(city, start, end, train, fill, history_length, predict_length, g
             for dt in per_delta(start_dt, end_dt, timedelta(hours=time_delta)):
                 try:
                     history_aq.append(fetch_span(start=dt - timedelta(hours=history_length - 1), end=dt,
-                                                 df=single_aq_df, time_span=history_length, columns=column_dict[city]))
+                                                 df=single_aq_df, time_span=history_length,
+                                                 columns=column_dict[city]))
                     history_grid.append(fetch_grid(start=dt - timedelta(hours=history_length - 1), end=dt,
                                                    df_matrix=grid_df_matrix, time_span=history_length))
                     forecast.append(get_forecast_data(dt_object=dt, city=city, center_grid_df=center_grid_df))
                     timestamps.append(dt.timestamp())
                     if train:
                         predict_aq.append(fetch_span(start=dt + timedelta(hours=1), end=dt + timedelta(hours=50),
-                                                     df=single_aq_df, time_span=predict_length, columns=column_dict[city]))
+                                                     df=single_aq_df, time_span=predict_length,
+                                                     columns=column_dict[city]))
                     valid += 1
                     last_valid_dt = dt
                 except KeyError:
@@ -211,7 +254,7 @@ def export_data(city, start, end, train, fill, history_length, predict_length, g
 
 if __name__ == "__main__":
     export_data(city="bj",
-                start=["2018-05-01-22", "2018-05-02-22", "2018-05-03-22"],
-                end=["2018-05-01-22", "2018-05-02-22", "2018-05-03-22"],
+                start=["2018-05-04-22", "2018-05-05-22", "2018-05-06-22", "2018-05-07-22"],
+                end=["2018-05-04-22", "2018-05-05-22", "2018-05-06-22", "2018-05-07-22"],
                 train=False, fill=True,
                 history_length=48, predict_length=50, grid_length=7, time_delta=24)

@@ -9,6 +9,7 @@ import h5py
 import numpy as np
 import argparse
 
+import pandas as pd
 from forecast import parse
 from utils.tools import *
 from utils import bj_raw_fetch, ld_raw_fetch
@@ -108,14 +109,14 @@ def get_forecast_data(dt_object, city, center_grid_df):
     :param dt_object: datetime object, specifying the datetime of forecast data you want to fetch.
     :param city: string, "bj" or "ld" for Beijing and London.
     :param center_grid_df: the data frame of the center of grid matrix, which is the nearest grid.
-    :return: forecast data, in list matrix or numpy array form.
+    :return: forecast data, in numpy array form.
     """
-    if dt_object.year == 2017:
-        raise FileNotFoundError
     file_directory = forecast_directory_dict[city].format((dt_object + timedelta(hours=8)).strftime("%m_%d_%H"))
     try:
-        return parse.get_data(file_directory)
-    except FileNotFoundError:
+        if dt_object.year == 2017:
+            raise ValueError("Year 2017 are bound to lack in real forecast data")
+        return np.array(parse.get_data(file_directory))
+    except (FileNotFoundError, ValueError):
         return get_fake_forecast(dt_object, center_grid_df)
 
 
@@ -124,11 +125,11 @@ def get_fake_forecast(dt_object, center_grid_df, time_span=50):
                   ["temperature", "humidity", "wind_speed", "wind_direction"]]
     if data_df.shape[0] < time_span:
         raise KeyError("Available grid data for forecast not long enough")
-    data_matrix = data_df.as_matrix()
-    result = []
-    for row in data_matrix:
-        result.append(np.append(row[0:3], get_angle_one_hot(row[3])))
-    return result
+    wind_one_hot = pd.Series(data_df["wind_direction"]).apply(lambda x: pd.Series(get_angle_one_hot(x)))
+    wind_one_hot.index = data_df.index.copy()
+    data_df = data_df.drop(["wind_direction"], axis=1)
+    data_df = pd.concat([data_df, wind_one_hot], axis=1)
+    return data_df.as_matrix()
 
 
 def get_near_grid_matrix(aq_coor, grid_length):
@@ -198,7 +199,15 @@ def export_data(city, start, end, train, fill, history_length, predict_length, g
 
         start_dt, end_dt = datetime.strptime(single_start, format_string[1]), \
                            datetime.strptime(single_end, format_string[1])
+
+        diff = end_dt - start_dt
+        days, seconds = diff.days, diff.seconds
+        delta_time = int(days * 24 + seconds // 3600)
+        delta_time = int(delta_time / time_delta)
+        split_time = int(delta_time / 20)
+
         for aq_name, aq_coor in aq_location.items():
+            aggregate_count = 0
             near_grid_names, near_grid_coors = get_near_grid_matrix(aq_coor, grid_length)
             single_aq_df = aq_df.loc[aq_name, :]
 
@@ -215,6 +224,9 @@ def export_data(city, start, end, train, fill, history_length, predict_length, g
             valid = 0
             last_valid_dt = None
             for dt in per_delta(start_dt, end_dt, timedelta(hours=time_delta)):
+                aggregate_count += 1
+                if aggregate_count % split_time == 0:
+                    print("\t{} exported %3.2f%%".format(aq_name) % (100 * aggregate_count / delta_time))
                 try:
                     history_aq.append(fetch_span(start=dt - timedelta(hours=history_length - 1), end=dt,
                                                  df=single_aq_df, time_span=history_length,
@@ -254,7 +266,7 @@ def export_data(city, start, end, train, fill, history_length, predict_length, g
 
 if __name__ == "__main__":
     export_data(city="bj",
-                start=["2018-05-04-22", "2018-05-05-22", "2018-05-06-22", "2018-05-07-22"],
-                end=["2018-05-04-22", "2018-05-05-22", "2018-05-06-22", "2018-05-07-22"],
-                train=False, fill=True,
-                history_length=48, predict_length=50, grid_length=7, time_delta=24)
+                start=["2017-01-01-00"],
+                end=["2018-05-01-00"],
+                train=True, fill=False,
+                history_length=48, predict_length=50, grid_length=7, time_delta=1)

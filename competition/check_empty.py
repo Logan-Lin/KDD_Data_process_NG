@@ -1,8 +1,13 @@
-from competition import load_data
 import os
+import sys
+
+sys.path.append(os.path.join("..", ""))
+
+from competition import load_data
 import pandas as pd
 from datetime import datetime as dt
 from utils import bj_raw_fetch
+import argparse
 
 
 aq_df = load_data.load_directory_data(os.path.join("data_bj_api", "aq"),
@@ -38,9 +43,7 @@ def get_empty_rate(aq_name, start, end):
     return empty_counts
 
 
-if __name__ == "__main__":
-    start, end = "2018-05-20-22", "2018-05-21-22"
-
+def check_all_empty(start, end):
     count_matrix = []
     for aq_name in bj_raw_fetch.aq_location.keys():
         count_matrix.append(get_empty_rate(aq_name, start, end))
@@ -48,3 +51,14 @@ if __name__ == "__main__":
     count_df = pd.DataFrame(count_matrix, index=list(bj_raw_fetch.aq_location.keys()),
                             columns=header)
     print(count_df)
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-s", "--start", type=str,
+                        help="Start datetime string, in YYYY-MM-DD-hh format", default="2018-05-18-22")
+    parser.add_argument("-e", "--end", type=str,
+                        help="End datetime string, in YYYY-MM-DD-hh format", default="2018-05-19-22")
+    argv = parser.parse_args()
+
+    check_all_empty(argv.start, argv.end)
